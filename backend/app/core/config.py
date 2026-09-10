@@ -122,6 +122,8 @@ class Settings:
         "true",
         "yes",
     }
+    # Keep well under the frontend Axios timeout so invite never hangs forever.
+    SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "8") or "8")
 
     @property
     def cors_origin_list(self) -> list[str]:

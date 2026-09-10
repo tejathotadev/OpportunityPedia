@@ -80,6 +80,8 @@ export async function createAdminUser(
 ): Promise<CreateAdminUserResult> {
   const { data } = await api.post<CreateAdminUserResult>('/admin/users', body, {
     headers: { Authorization: `Bearer ${token}` },
+    // SMTP may take a few seconds; backend caps at SMTP_TIMEOUT_SECONDS.
+    timeout: 25_000,
   })
   return data
 }
