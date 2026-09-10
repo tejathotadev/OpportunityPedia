@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: opportunitypedia-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # One worker only: runs and results live in process memory, which nothing
+    # shares between workers.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      # Secrets are entered in the dashboard, never committed.
+      - key: SAM_GOV_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # No sign-in yet, so the read API answers as this customer. Anyone with
+      # the URL can read the data and spend a run, so pair this with Vercel's
+      # password protection while it is non-zero.
+      - key: OP_PUBLIC_USER_ID
+        value: "4"
+      - key: SAM_NAICS_CODES
+        value: "561320"
+      - key: SAM_NAICS_QUERY
+        value: "561320"
+      - key: SAM_LOOKBACK_DAYS
+        value: "365"
+      - key: SAM_EXCLUDE_EXPIRED
+        value: "true"
+      - key: SAM_ENTITY_LOOKUPS
+        value: "0"
+      - key: SAM_MAX_ROWS_PER_CODE
+        value: "2000"
+      - key: RADAR_HTTP_TIMEOUT_SECONDS
+        value: "60"
+      - key: RADAR_MAX_JOBS_PER_BOARD
+        value: "500"
+      # A run spends one upstream request per NAICS code against a 10/day key
+      # quota. Raise the cooldown once the demo is over.
+      - key: RADAR_RUN_COOLDOWN_MINUTES
+        value: "2"
+      - key: RADAR_RUNS_PER_DAY
+        value: "0"
+      - key: APP_PUBLIC_URL
+        sync: false

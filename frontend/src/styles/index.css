@@ -1,0 +1,540 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * OPPORTUNITYPEDIA — DESIGN TOKENS
+ *
+ * One system for both halves of the product: the public site and the
+ * OpportunityX application. Editorial warm-neutral + forest. Green is
+ * used intentionally, never as a gradient and never as the dominant
+ * surface.
+ * ------------------------------------------------------------------ */
+
+/* Semantic surface/line/text values live in :root so a dark theme can be
+   layered in later without touching component code. */
+:root {
+  /* Surfaces — warm paper, not cool grey */
+  --ox-canvas: #f7f7f2;
+  --ox-surface: #ffffff;
+  --ox-surface-muted: #fbfbf8;
+  --ox-surface-sunken: #f0f1ed;
+  --ox-sidebar: #ffffff;
+
+  /* Lines */
+  --ox-border: #e7e9e4;
+  --ox-border-strong: #d6dad2;
+
+  /* Text */
+  --ox-ink: #111827;
+  --ox-ink-secondary: #475569;
+  --ox-ink-muted: #64748b;
+  --ox-ink-subtle: #94a3b8;
+  --ox-ink-inverse: #f7f7f2;
+}
+
+@theme inline {
+  --color-canvas: var(--ox-canvas);
+  --color-surface: var(--ox-surface);
+  --color-surface-muted: var(--ox-surface-muted);
+  --color-surface-sunken: var(--ox-surface-sunken);
+  --color-sidebar: var(--ox-sidebar);
+
+  --color-line: var(--ox-border);
+  --color-line-strong: var(--ox-border-strong);
+
+  --color-ink: var(--ox-ink);
+  --color-ink-secondary: var(--ox-ink-secondary);
+  --color-ink-muted: var(--ox-ink-muted);
+  --color-ink-subtle: var(--ox-ink-subtle);
+  --color-ink-inverse: var(--ox-ink-inverse);
+}
+
+@theme {
+  /* ---- Core palette (public site) ---- */
+  --color-forest: #12372a;
+  --color-forest-deep: #0d2a20;
+  /* Signal green marks one thing only: a signal that has become an
+     opportunity. It is never decoration. These tones clear WCAG AA both on
+     paper and on white. */
+  --color-signal: #21805d; /* 4.53:1 on paper, 4.87:1 on white */
+  --color-signal-deep: #17624a; /* 6.78:1 on paper — hover and emphasis */
+  --color-paper: #f7f7f2;
+  --color-paper-warm: #efebdd;
+  --color-graphite: #475569;
+  --color-mist: #e7e9e4;
+  --color-mist-soft: #f0f1ed;
+
+  /* ---- Brand scales (application) ----
+     Same two hues expressed as ramps. `forest-900` and `signal-600` are the
+     core tokens above, so the app and the site never drift apart. */
+  --color-forest-50: #eef2ef;
+  --color-forest-100: #dbe4de;
+  --color-forest-200: #bacdc2;
+  --color-forest-300: #8fada0;
+  --color-forest-400: #5d8272;
+  --color-forest-500: #3a6252;
+  --color-forest-600: #26493a;
+  --color-forest-700: #1a3f2f;
+  --color-forest-800: #16392b;
+  --color-forest-900: #12372a;
+  --color-forest-950: #0d2a20;
+
+  --color-signal-50: #eef5f1;
+  --color-signal-100: #d7e8df;
+  --color-signal-200: #b0d3c2;
+  --color-signal-300: #7ab79c;
+  --color-signal-400: #439a78;
+  --color-signal-500: #2a8b64;
+  --color-signal-600: #21805d;
+  --color-signal-700: #17624a;
+  --color-signal-800: #124f3b;
+  --color-signal-900: #0f4031;
+
+  /* ---- OpportunityX product mockups on the marketing site only ----
+     The dark stages in the product showcase. Not used by the application. */
+  --color-navy: #0b1f3b;
+  --color-navy-deep: #071528;
+  --color-navy-soft: #12305a;
+  --color-teal: #2dd4bf;
+  --color-teal-deep: #14b8a6;
+  /* Teal is only legible as text on dark stages. This is the on-light tone. */
+  --color-teal-ink: #0f766e;
+
+  /* ---- Signal temperature ----
+     Meaning-bearing colors only. The public site uses the base tones; the
+     application also needs soft fills, hairlines and accessible text tones. */
+  --color-temp-very-hot: #d9432f;
+  --color-temp-hot: #e0762a;
+  --color-temp-warm: #c9a227;
+  --color-temp-watch: #64748b;
+
+  --color-veryhot: #d9432f;
+  --color-veryhot-strong: #b0301d;
+  --color-veryhot-soft: #fdf3f0;
+  --color-veryhot-line: #f2d3c9;
+
+  --color-hot: #e0762a;
+  --color-hot-strong: #a2530f;
+  --color-hot-soft: #fdf7ef;
+  --color-hot-line: #f0ddbe;
+
+  --color-warm: #c9a227;
+  --color-warm-strong: #8a6d0c;
+  --color-warm-soft: #fbf8ea;
+  --color-warm-line: #ebe2b6;
+
+  --color-watch: #64748b;
+  --color-watch-strong: #475569;
+  --color-watch-soft: #f1f2ef;
+  --color-watch-line: #dcdfd9;
+
+  --color-cold: #8a9284;
+  --color-cold-soft: #f2f3ef;
+  --color-cold-line: #e2e4de;
+
+  /* ---- Outcome states ---- */
+  --color-success: #17624a;
+  --color-success-soft: #eef5f1;
+  --color-success-line: #c8ded2;
+  --color-danger: #b0301d;
+  --color-danger-strong: #8f2517;
+  --color-danger-soft: #fdf3f0;
+  --color-danger-line: #f2d3c9;
+  --color-info: #12372a;
+  --color-info-soft: #eef2ef;
+  --color-info-line: #d3ded7;
+
+  /* ---- Typography ---- */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', 'Roboto Mono', monospace;
+
+  /* Editorial type scale */
+  --text-hero: clamp(2.5rem, 1.35rem + 4.6vw, 4.75rem); /* 40 → 76px */
+  --text-hero--line-height: 1;
+  --text-hero--letter-spacing: -0.03em;
+
+  --text-display: clamp(2rem, 1.15rem + 3.4vw, 3.25rem); /* 32 → 52px */
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.025em;
+
+  --text-title: clamp(1.5rem, 1.15rem + 1.4vw, 2rem); /* 24 → 32px */
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+
+  --text-lead: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem); /* 17 → 20px */
+  --text-lead--line-height: 1.55;
+
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.2;
+  --text-meta--letter-spacing: 0.09em;
+
+  /* ---- Section rhythm (public site) ---- */
+  --spacing-section: clamp(4.5rem, 3rem + 6vw, 10rem); /* 72 → 160px */
+  --spacing-gutter: clamp(1.25rem, 0.5rem + 2vw, 3rem); /* 20 → 48px */
+
+  /* ---- Radii — restrained. The `md`/`lg` overrides pull the application's
+     existing `rounded-md` onto the editorial scale without touching it. ---- */
+  --radius-card: 10px;
+  --radius-control: 7px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+
+  /* ---- Elevation — reserved for overlays ---- */
+  --shadow-overlay:
+    0 12px 32px -8px rgb(17 24 39 / 0.16), 0 4px 10px -4px rgb(17 24 39 / 0.08);
+  --shadow-panel: -16px 0 40px -12px rgb(17 24 39 / 0.14);
+  --shadow-raise: 0 1px 2px 0 rgb(17 24 39 / 0.05);
+
+  /* ---- Motion ---- */
+  --ease-editorial: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-ox: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  * {
+    border-color: var(--ox-border);
+  }
+
+  html {
+    /* Navbar offset for in-page anchors */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--ox-canvas);
+    color: var(--ox-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  @media (min-width: 768px) {
+    body {
+      font-size: 1.0625rem;
+    }
+  }
+
+  /* The application is a dense surface: tables and the sidebar are tuned for
+     14px. Editorial body sizing stays on the public site. */
+  .op-app {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 768px) {
+    .op-app {
+      font-size: 14px;
+    }
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  .op-app :is(h1, h2, h3, h4) {
+    font-weight: 600;
+    letter-spacing: -0.014em;
+    color: var(--ox-ink);
+    text-wrap: initial;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, brand-consistent focus for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-signal) 26%, transparent);
+    color: var(--ox-ink);
+  }
+
+  /* Dark product stages on the marketing site get a light focus ring */
+  .op-stage :focus-visible {
+    outline-color: var(--color-teal);
+  }
+
+  /* Tabular numerals keep metric columns aligned */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * MOTIF: SIGNAL INDEX — small structured metadata labels
+ * ------------------------------------------------------------------ */
+@utility label-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-graphite);
+}
+
+@utility rule-t {
+  border-top: 1px solid var(--color-mist);
+}
+
+/* Faint editorial grid / dot fields, no gradients */
+@utility field-grid {
+  background-image: linear-gradient(to right, var(--color-mist) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-mist) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+@utility field-dots {
+  background-image: radial-gradient(var(--color-mist) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cdd2c9 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #cdd2c9;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * MOTION SYSTEM — public site
+ * Reveal on scroll and line draw. All of it collapses to a static
+ * end-state under reduced motion. The hero atlas is a static plate
+ * and does not participate in this system.
+ * ------------------------------------------------------------------ */
+@layer components {
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 640ms var(--ease-editorial),
+      transform 640ms var(--ease-editorial);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .reveal[data-visible='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .reveal-line {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 720ms var(--ease-editorial);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .reveal-line[data-visible='true'] {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * MOTION SYSTEM — application
+ * Radix-driven transitions: short, no bounce.
+ * ------------------------------------------------------------------ */
+@keyframes ox-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ox-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ox-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes ox-slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ox-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes ox-dialog-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+}
+
+@keyframes ox-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ox-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ox-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ox-anim-overlay[data-state='open'] {
+  animation: ox-fade-in 180ms var(--ease-ox);
+}
+.ox-anim-overlay[data-state='closed'] {
+  animation: ox-fade-out 160ms var(--ease-ox);
+}
+.ox-anim-drawer[data-state='open'] {
+  animation: ox-slide-in-right 220ms var(--ease-ox);
+}
+.ox-anim-drawer[data-state='closed'] {
+  animation: ox-slide-out-right 180ms var(--ease-ox);
+}
+.ox-anim-dialog[data-state='open'] {
+  animation: ox-dialog-in 180ms var(--ease-ox);
+}
+.ox-anim-dialog[data-state='closed'] {
+  animation: ox-dialog-out 150ms var(--ease-ox);
+}
+.ox-anim-pop[data-state='open'] {
+  animation: ox-pop-in 150ms var(--ease-ox);
+}
+.ox-anim-toast {
+  animation: ox-toast-in 180ms var(--ease-ox);
+}
+
+.ox-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--ox-surface-sunken);
+}
+
+.ox-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0),
+    rgb(255 255 255 / 0.65),
+    rgb(255 255 255 / 0)
+  );
+  animation: ox-shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .reveal-line {
+    transform: scaleX(1) !important;
+  }
+}

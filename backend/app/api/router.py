@@ -1,0 +1,85 @@
+from fastapi import APIRouter
+
+from app.api.routes import Routes
+from app.controllers.access_controller import create_access_request
+from app.controllers.admin_controller import (
+    create_user,
+    list_leads,
+    list_payments,
+    list_users,
+    update_lead,
+)
+from app.controllers.auth_controller import (
+    customer_login,
+    login,
+    me,
+    resend_setup,
+    set_password,
+)
+from app.controllers.contact_controller import submit_contact
+from app.controllers import op_controller
+from app.controllers.radar_controller import latest_results
+from app.controllers.razorpay_controller import create_order, verify_payment
+
+api_router = APIRouter()
+api_router.add_api_route(Routes.ADMIN_LOGIN, login, methods=["POST"])
+api_router.add_api_route(Routes.ADMIN_ME, me, methods=["GET"])
+api_router.add_api_route(Routes.ADMIN_USERS, list_users, methods=["GET"])
+api_router.add_api_route(Routes.ADMIN_USERS, create_user, methods=["POST"])
+api_router.add_api_route(Routes.ADMIN_PAYMENTS, list_payments, methods=["GET"])
+api_router.add_api_route(Routes.ADMIN_LEADS, list_leads, methods=["GET"])
+api_router.add_api_route(Routes.ADMIN_LEAD, update_lead, methods=["PATCH"])
+api_router.add_api_route(Routes.CONTACT, submit_contact, methods=["POST"])
+api_router.add_api_route(Routes.ACCESS_REQUESTS, create_access_request, methods=["POST"])
+api_router.add_api_route(Routes.RAZORPAY_ORDER, create_order, methods=["POST"])
+api_router.add_api_route(Routes.RAZORPAY_VERIFY, verify_payment, methods=["POST"])
+api_router.add_api_route(Routes.AUTH_LOGIN, customer_login, methods=["POST"])
+api_router.add_api_route(Routes.AUTH_SET_PASSWORD, set_password, methods=["POST"])
+api_router.add_api_route(Routes.AUTH_RESEND_SETUP, resend_setup, methods=["POST"])
+api_router.add_api_route(Routes.RADAR_RESULTS, latest_results, methods=["GET"])
+
+# OP frontend read API.
+_OP_READS = [
+    (Routes.OP_OPPORTUNITIES, op_controller.list_opportunities),
+    (Routes.OP_OPPORTUNITY_COMPANIES, op_controller.list_opportunity_companies),
+    (Routes.OP_COMPANY_HIRING_SIGNAL, op_controller.company_hiring_signal),
+    (Routes.OP_OPPORTUNITY, op_controller.get_opportunity),
+    (Routes.OP_OPPORTUNITY_OPEN, op_controller.open_opportunity_source),
+    (Routes.OP_OPPORTUNITY_ACTIVITY, op_controller.opportunity_activity),
+    (Routes.OP_OPPORTUNITY_OUTREACH, op_controller.opportunity_outreach),
+    (Routes.OP_OPPORTUNITY_ASSIGNMENTS, op_controller.opportunity_assignments),
+    (Routes.OP_VENDORS, op_controller.list_vendors),
+    (Routes.OP_VENDOR, op_controller.get_vendor),
+    (Routes.OP_DASHBOARD_METRICS, op_controller.dashboard_metrics),
+    (Routes.OP_DASHBOARD_PIPELINE, op_controller.dashboard_pipeline),
+    (Routes.OP_DASHBOARD_ATTENTION, op_controller.dashboard_needs_attention),
+    (Routes.OP_DASHBOARD_DEADLINES, op_controller.dashboard_deadlines),
+    (Routes.OP_ACTIVITY, op_controller.list_activity),
+    (Routes.OP_ASSIGNMENTS_ME, op_controller.my_assignments),
+    (Routes.OP_TEAM_OWNERSHIP, op_controller.team_ownership),
+    (Routes.OP_NOTIFICATIONS, op_controller.list_notifications),
+    (Routes.OP_SAVED_VIEWS, op_controller.list_saved_views),
+    (Routes.OP_SEARCH, op_controller.search),
+    (Routes.RADAR_STATUS, op_controller.radar_status),
+]
+for _path, _handler in _OP_READS:
+    api_router.add_api_route(_path, _handler, methods=["GET"])
+
+# Writes that have no storage yet answer 501 instead of 404.
+_OP_WRITES = [
+    (Routes.OP_OPPORTUNITY_ASSIGN, op_controller.opportunity_write, ["POST", "DELETE"]),
+    (Routes.OP_OPPORTUNITY_SAVED, op_controller.opportunity_write, ["POST"]),
+    (Routes.OP_OPPORTUNITY_NOTES, op_controller.opportunity_write, ["POST"]),
+    (Routes.OP_OPPORTUNITY_FOLLOW_UP, op_controller.opportunity_write, ["POST"]),
+    (Routes.OP_NOTIFICATION_READ, op_controller.notification_read, ["POST"]),
+    (Routes.OP_NOTIFICATIONS_READ_ALL, op_controller.notifications_read_all, ["POST"]),
+    (Routes.OP_SAVED_VIEWS, op_controller.create_saved_view, ["POST"]),
+    (Routes.OP_SAVED_VIEW, op_controller.delete_saved_view, ["DELETE"]),
+    (Routes.OP_OUTREACH, op_controller.send_outreach, ["POST"]),
+]
+for _path, _handler, _methods in _OP_WRITES:
+    # opportunity_write backs several paths, so name each one for OpenAPI.
+    _slug = _path.replace("/", "_").replace("{", "").replace("}", "").strip("_")
+    api_router.add_api_route(_path, _handler, methods=_methods, operation_id=_slug)
+
+api_router.add_api_route(Routes.RADAR_RUN, op_controller.trigger_radar_run, methods=["POST"])
