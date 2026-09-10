@@ -2021,7 +2021,7 @@ def send_outreach(*, user_id: int, payload: dict[str, Any]) -> dict[str, Any]:
     if not sender_email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sender email required")
 
-    if not email_service.smtp_configured():
+    if not email_service.email_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Email delivery is not configured",

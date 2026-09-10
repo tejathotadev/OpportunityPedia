@@ -112,6 +112,9 @@ class Settings:
     FRONTEND_PUBLIC_URL: str = (
         os.getenv("FRONTEND_PUBLIC_URL") or os.getenv("APP_PUBLIC_URL") or "http://127.0.0.1:5173"
     ).rstrip("/")
+    # Prefer Resend (HTTPS) on Railway. SMTP remains a local/dev fallback.
+    RESEND_API_KEY: str = (os.getenv("RESEND_API_KEY") or "").strip()
+    EMAIL_FROM: str = (os.getenv("EMAIL_FROM") or os.getenv("SMTP_FROM") or "").strip()
     SMTP_HOST: str = (os.getenv("SMTP_HOST") or "").strip()
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "465") or "465")
     SMTP_USER: str = (os.getenv("SMTP_USER") or "").strip()
