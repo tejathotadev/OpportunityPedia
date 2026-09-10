@@ -245,6 +245,7 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
 
     # Anything raised here is caught by the caller, which marks the reserved
     # row failed so the status endpoint stops reporting a live scan.
+    # Full ATS catalog is 100+ boards; keep the client open for the whole scan.
     with httpx.Client(
         timeout=max(settings.RADAR_HTTP_TIMEOUT_SECONDS, 90),
         headers={"User-Agent": settings.USER_AGENT},

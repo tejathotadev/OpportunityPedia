@@ -1351,15 +1351,6 @@ def persist_company_hiring_signals(user_id: int) -> int:
     return len(rows)
 
 
-def _ensure_company_signals_persisted(user_id: int) -> None:
-    """While memory still has hiring jobs, keep the company rollup table warm."""
-    try:
-        if any(i.get("type") == "hiring" for i in _opportunities(user_id)):
-            persist_company_hiring_signals(user_id)
-    except Exception:
-        pass
-
-
 def _company_rows_from_persisted(user_id: int) -> list[dict[str, Any]]:
     try:
         from app.repositories import company_hiring_repository
@@ -1477,7 +1468,7 @@ def _company_attention_from_persisted(
 
 def list_opportunity_companies(*, user_id: int, params: Any) -> dict[str, Any]:
     """Company-first Opportunities index. Counts respect title_match + detected + filters."""
-    _ensure_company_signals_persisted(user_id)
+    # Rollups are refreshed when Radar finishes; avoid blocking the index on upsert.
     live_hiring = [i for i in _opportunities(user_id) if i.get("type") == "hiring"]
     if live_hiring:
         items = filter_opportunities(live_hiring, params)
@@ -1685,7 +1676,8 @@ def dashboard_metrics(
 ) -> dict[str, Any]:
     # Filtered once by type and country so the weekly caption below can reuse
     # the list without a second trip to the database.
-    _ensure_company_signals_persisted(user_id)
+    # Company rollups are written at the end of each Radar run — do not re-persist
+    # on every Overview poll (that blocked the UI past the client timeout).
     typed = _by_countries(_by_types(_opportunities(user_id), types), countries)
     items = _detected_within(typed, detected_within_days)
 
@@ -1744,8 +1736,9 @@ def dashboard_metrics(
         "veryHot": len(very_hot_opps),
         # Nothing is owned or contacted until the CRM tables exist.
         "veryHotNeedingAttention": len(very_hot_opps),
-        # Hot card surfaces commercial openings volume (not temperature buckets).
-        "hot": total_openings,
+        # Hot = commercial companies with hiring (Greenhouse / Lever / Ashby).
+        # hotUnassigned keeps total open roles for the card caption.
+        "hot": len(commercial_companies),
         "hotUnassigned": total_openings,
         "assignedToMe": 0,
         "assignedToMeNotContacted": 0,
@@ -1869,7 +1862,7 @@ def needs_attention(
     more urgent than any hiring trend, but a surging employer outranks a tender
     that is months away.
     """
-    _ensure_company_signals_persisted(user_id)
+    # Persist happens on Radar completion; skip here so Overview stays responsive.
     items = _scoped(user_id, types, detected_within_days, countries)
     notices = [i for i in items if i["type"] != "hiring"]
     live_hiring = [i for i in items if i["type"] == "hiring"]

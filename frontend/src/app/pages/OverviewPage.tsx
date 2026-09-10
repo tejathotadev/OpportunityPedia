@@ -364,13 +364,13 @@ export function OverviewPage() {
                   metrics.data
                     ? `${metrics.data.hotUnassigned} ${
                         metrics.data.hotUnassigned === 1 ? 'opening' : 'openings'
-                      }`
+                      } across companies`
                     : undefined
                 }
                 contextTone="warning"
                 icon={ThermometerSun}
                 accent="hot"
-                to={scoped('/app/opportunities')}
+                to={scoped('/app/opportunities?lane=commercial')}
               />
               <StatCard
                 label="Assigned to Me"

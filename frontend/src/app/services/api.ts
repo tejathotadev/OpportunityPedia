@@ -12,7 +12,8 @@ export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? '/api/v
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15_000,
+  // Default for most calls; dashboard/radar paths override higher when needed.
+  timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
 })
 

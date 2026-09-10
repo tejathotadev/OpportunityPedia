@@ -27,6 +27,16 @@ COLLECTORS: dict[str, dict[str, Any]] = {
         "display_name": "Greenhouse",
         "api_url": "https://boards-api.greenhouse.io/v1/boards/{token}/jobs",
     },
+    "lever": {
+        "enabled": True,
+        "display_name": "Lever",
+        "api_url": "https://api.lever.co/v0/postings/{token}",
+    },
+    "ashby": {
+        "enabled": True,
+        "display_name": "Ashby",
+        "api_url": "https://api.ashbyhq.com/posting-api/job-board/{token}",
+    },
     "sam_gov": {
         "enabled": True,
         "display_name": "SAM.gov",
@@ -354,6 +364,139 @@ def fetch_greenhouse(source: dict[str, Any], client: httpx.Client) -> tuple[list
     if not isinstance(jobs_raw, list):
         return [], "no jobs list"
     return _parse_greenhouse_jobs(payload), None
+
+
+def _parse_lever_jobs(payload: Any) -> list[dict]:
+    items = payload if isinstance(payload, list) else (
+        payload.get("data") if isinstance(payload, dict) else None
+    )
+    if not isinstance(items, list):
+        return []
+    jobs: list[dict] = []
+    max_jobs = settings.RADAR_MAX_JOBS_PER_BOARD
+    for item in items[:max_jobs]:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("text") or item.get("title") or "").strip()
+        if not title:
+            continue
+        categories = item.get("categories") if isinstance(item.get("categories"), dict) else {}
+        location = categories.get("location") if categories else item.get("location")
+        department = None
+        if categories:
+            department = categories.get("team") or categories.get("department")
+        posted_at = _str_or_none(item.get("createdAt")) or _str_or_none(item.get("updatedAt"))
+        jobs.append(
+            {
+                "record_kind": "tender",
+                "external_job_id": str(item.get("id") or title),
+                "title": title,
+                "location": str(location) if location else None,
+                "department": str(department) if department else None,
+                "url": _str_or_none(item.get("hostedUrl")) or _str_or_none(item.get("applyUrl")),
+                "posted_at": posted_at,
+                "updated_at": _str_or_none(item.get("updatedAt")),
+                "requisition_id": None,
+            }
+        )
+    return jobs
+
+
+def fetch_lever(source: dict[str, Any], client: httpx.Client) -> tuple[list[dict], str | None]:
+    meta = COLLECTORS.get("lever") or {}
+    api = str(meta.get("api_url") or "")
+    token = str(source.get("token") or "")
+    if not api or not token:
+        return [], "missing api or token"
+    url = api.format(token=token)
+    try:
+        response = client.get(url, params={"mode": "json"})
+    except Exception as exc:
+        return [], f"{type(exc).__name__}"
+    if response.status_code == 404:
+        return [], "HTTP404"
+    if response.status_code >= 400:
+        return [], f"HTTP{response.status_code}"
+    try:
+        payload = response.json()
+    except Exception:
+        return [], "invalid_json"
+    jobs = _parse_lever_jobs(payload)
+    if not jobs:
+        return [], "no jobs list"
+    return jobs, None
+
+
+def _parse_ashby_jobs(payload: Any) -> list[dict]:
+    jobs_raw = payload.get("jobs") if isinstance(payload, dict) else payload
+    if not isinstance(jobs_raw, list):
+        return []
+    jobs: list[dict] = []
+    max_jobs = settings.RADAR_MAX_JOBS_PER_BOARD
+    for item in jobs_raw[:max_jobs]:
+        if not isinstance(item, dict):
+            continue
+        if item.get("isListed") is False:
+            continue
+        title = str(item.get("title") or "").strip()
+        if not title:
+            continue
+        location = item.get("location")
+        if isinstance(location, dict):
+            location_text = location.get("name") or location.get("location")
+        else:
+            location_text = location
+        department = None
+        dept = item.get("department")
+        if isinstance(dept, str):
+            department = dept
+        elif isinstance(dept, dict):
+            department = dept.get("name")
+        team = item.get("team")
+        if not department and isinstance(team, str):
+            department = team
+        posted_at = _str_or_none(item.get("publishedAt")) or _str_or_none(
+            item.get("updatedAt")
+        )
+        jobs.append(
+            {
+                "record_kind": "tender",
+                "external_job_id": str(item.get("id") or item.get("jobId") or title),
+                "title": title,
+                "location": str(location_text) if location_text else None,
+                "department": str(department) if department else None,
+                "url": _str_or_none(item.get("jobUrl")) or _str_or_none(item.get("applyUrl")),
+                "posted_at": posted_at,
+                "updated_at": _str_or_none(item.get("updatedAt")),
+                "requisition_id": None,
+            }
+        )
+    return jobs
+
+
+def fetch_ashby(source: dict[str, Any], client: httpx.Client) -> tuple[list[dict], str | None]:
+    meta = COLLECTORS.get("ashby") or {}
+    api = str(meta.get("api_url") or "")
+    token = str(source.get("token") or "")
+    if not api or not token:
+        return [], "missing api or token"
+    url = api.format(token=token)
+    try:
+        response = client.get(url)
+    except Exception as exc:
+        return [], f"{type(exc).__name__}"
+    if response.status_code == 404:
+        return [], "HTTP404"
+    if response.status_code >= 400:
+        return [], f"HTTP{response.status_code}"
+    try:
+        payload = response.json()
+    except Exception:
+        return [], "invalid_json"
+    jobs = _parse_ashby_jobs(payload)
+    if not jobs:
+        return [], "no jobs list"
+    return jobs, None
 
 
 def _error_detail(response: httpx.Response, limit: int = 160) -> str:
@@ -691,6 +834,8 @@ def fetch_sam_gov(source: dict[str, Any], client: httpx.Client) -> tuple[list[di
 
 FETCHERS: dict[str, Callable[[dict[str, Any], httpx.Client], tuple[list[dict], str | None]]] = {
     "greenhouse": fetch_greenhouse,
+    "lever": fetch_lever,
+    "ashby": fetch_ashby,
     "sam_gov": fetch_sam_gov,
 }
 

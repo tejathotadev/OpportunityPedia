@@ -85,6 +85,7 @@ export async function getOpportunityCompanies(query: {
 export async function getAllOpportunities(): Promise<Opportunity[]> {
   const { data } = await api.get<Paginated<Opportunity>>('/opportunities', {
     params: { page_size: 500 },
+    timeout: 60_000,
   })
   return data.items
 }
