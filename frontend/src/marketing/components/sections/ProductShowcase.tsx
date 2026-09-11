@@ -5,13 +5,13 @@ import { LinkButton } from '@/marketing/components/common/Button';
 import { Reveal } from '@/marketing/components/common/Reveal';
 import { OpportunityPediaMark } from '@/shared/brand/Logo';
 import { SignalIndex } from '@/marketing/components/brand/SignalIndex';
-import { ProductInteractionPreview } from '@/marketing/components/visuals/ProductInteractionPreview';
+import { ProductOutcomes } from '@/marketing/components/visuals/ProductOutcomes';
 import { site } from '@/marketing/data/site';
 import { track } from '@/marketing/lib/analytics';
 
 /**
- * The flagship product section. The dark product stage below the copy is what
- * separates this from the surrounding editorial sections.
+ * The flagship product section. The dark stage below the copy holds outcomes
+ * only — no product chrome and no collection methods.
  */
 export function ProductShowcase() {
   return (
@@ -65,21 +65,20 @@ export function ProductShowcase() {
         </div>
       </Container>
 
-      {/* Dark product stage — deliberately wider than the reading grid */}
       <Container width="wide" className="mt-14 md:mt-20">
         <Reveal>
           <div className="bg-navy-deep p-3 md:p-5 lg:p-7">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="label-meta text-white/45">OpportunityPedia · Product walkthrough</p>
+              <p className="label-meta text-white/45">OpportunityPedia · What teams get</p>
               <SignalIndex
                 tone="inverse"
                 entries={[
-                  { key: 'View', value: 'Dashboard' },
-                  { key: 'Data', value: 'Illustrative' },
+                  { key: 'Product', value: 'OpportunityPedia' },
+                  { key: 'By', value: 'OpportunityX' },
                 ]}
               />
             </div>
-            <ProductInteractionPreview />
+            <ProductOutcomes />
           </div>
         </Reveal>
       </Container>

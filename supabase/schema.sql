@@ -221,6 +221,20 @@ create index if not exists ix_opportunity_activities_user_created
 create index if not exists ix_opportunity_activities_user_opp
   on public.opportunity_activities (user_id, opportunity_id, created_at desc);
 
+create table if not exists public.opportunity_assignments (
+  id                  bigint generated always as identity primary key,
+  user_id             bigint not null references public.users (id) on delete cascade,
+  opportunity_id      text not null,
+  assigned_to_id      bigint not null references public.users (id) on delete cascade,
+  assigned_to_name    text not null,
+  assigned_at         timestamptz not null default now(),
+  constraint uq_opportunity_assignments_user_opp unique (user_id, opportunity_id)
+);
+
+create index if not exists ix_opportunity_assignments_user
+  on public.opportunity_assignments (user_id, assigned_at desc);
+
+
 -- ---------------------------------------------------------------------------
 -- updated_at helper
 -- ---------------------------------------------------------------------------
@@ -269,3 +283,4 @@ alter table public.opportunity_details enable row level security;
 alter table public.company_hiring_signals enable row level security;
 alter table public.outreach_messages enable row level security;
 alter table public.opportunity_activities enable row level security;
+alter table public.opportunity_assignments enable row level security;

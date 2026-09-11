@@ -18,6 +18,7 @@ class Tables:
     company_hiring_signals = "company_hiring_signals"
     outreach_messages = "outreach_messages"
     opportunity_activities = "opportunity_activities"
+    opportunity_assignments = "opportunity_assignments"
     # Deferred / unused until radar is persisted:
     radar_runs = settings.TABLE_RADAR_RUNS
     radar_jobs = settings.TABLE_RADAR_JOBS

@@ -2,6 +2,10 @@ import type { Assignment, Opportunity, TeamOwnershipRow, User } from '@/app/type
 
 import { api } from './api'
 
+function assignmentPath(opportunityId: string, suffix: '/assign' | '/assignments'): string {
+  return `/opportunities/${encodeURIComponent(opportunityId)}${suffix}`
+}
+
 /**
  * The backend derives the acting user from the session and owns the audit
  * trail, so only the assignment target is sent.
@@ -10,7 +14,7 @@ export async function assignOpportunity(
   opportunityId: string,
   user: User,
 ): Promise<Opportunity> {
-  const { data } = await api.post<Opportunity>(`/opportunities/${opportunityId}/assign`, {
+  const { data } = await api.post<Opportunity>(assignmentPath(opportunityId, '/assign'), {
     userId: user.id,
   })
   return data
@@ -20,14 +24,14 @@ export async function reassignOpportunity(
   opportunityId: string,
   targetUserId: string,
 ): Promise<Opportunity> {
-  const { data } = await api.post<Opportunity>(`/opportunities/${opportunityId}/assign`, {
+  const { data } = await api.post<Opportunity>(assignmentPath(opportunityId, '/assign'), {
     userId: targetUserId,
   })
   return data
 }
 
 export async function unassignOpportunity(opportunityId: string): Promise<Opportunity> {
-  const { data } = await api.delete<Opportunity>(`/opportunities/${opportunityId}/assign`)
+  const { data } = await api.delete<Opportunity>(assignmentPath(opportunityId, '/assign'))
   return data
 }
 
@@ -38,7 +42,7 @@ export async function getMyAssignments(): Promise<Opportunity[]> {
 
 export async function getAssignmentHistory(opportunityId: string): Promise<Assignment[]> {
   const { data } = await api.get<{ items: Assignment[] }>(
-    `/opportunities/${opportunityId}/assignments`,
+    assignmentPath(opportunityId, '/assignments'),
   )
   return data.items
 }

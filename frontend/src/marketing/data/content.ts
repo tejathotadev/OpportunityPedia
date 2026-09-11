@@ -1,5 +1,3 @@
-import type { Temperature } from '@/marketing/components/common/SignalBadge';
-
 /* ---------------------------------------------------------------- *
  * THE PROBLEM
  * ---------------------------------------------------------------- */
@@ -117,6 +115,24 @@ export const productBenefits = [
     index: '04',
     title: 'Act immediately',
     body: 'Move from discovery to outreach without losing context.',
+  },
+] as const;
+
+export const productOutcomes = [
+  {
+    index: '01',
+    title: 'See what needs attention',
+    body: 'One queue for the work that matters today — without hunting across disconnected tools.',
+  },
+  {
+    index: '02',
+    title: 'Assign before anyone overlaps',
+    body: 'A named owner on each opportunity, so two people do not contact the same account.',
+  },
+  {
+    index: '03',
+    title: 'Outreach from the same place',
+    body: 'Draft, edit and send without leaving the workflow or losing the original context.',
   },
 ] as const;
 
@@ -254,104 +270,3 @@ export const operationalFrictions = [
   'Missed timing',
   'Unclear ownership',
 ] as const;
-
-/* ---------------------------------------------------------------- *
- * PRODUCT-STAGE MOCK DATA — illustrative UI content only.
- * ---------------------------------------------------------------- */
-export type MockOpportunity = {
-  id: string;
-  organization: string;
-  title: string;
-  category: string;
-  temperature: Temperature;
-  owner: string | null;
-  updated: string;
-};
-
-export const mockOpportunities: MockOpportunity[] = [
-  {
-    id: '0247',
-    organization: 'Northbridge Health System',
-    title: 'Enterprise modernization requirement',
-    category: 'Priority',
-    temperature: 'very-hot',
-    owner: null,
-    updated: '14:32',
-  },
-  {
-    id: '0246',
-    organization: 'Halden Logistics Group',
-    title: 'Leadership change detected',
-    category: 'Watch',
-    temperature: 'very-hot',
-    owner: 'A. Rao',
-    updated: '13:58',
-  },
-  {
-    id: '0244',
-    organization: 'Meridian Utilities',
-    title: 'Capability expansion underway',
-    category: 'Growth',
-    temperature: 'hot',
-    owner: 'S. Iyer',
-    updated: '11:20',
-  },
-  {
-    id: '0241',
-    organization: 'Coastline Retail Partners',
-    title: 'New regional footprint',
-    category: 'Growth',
-    temperature: 'hot',
-    owner: null,
-    updated: '09:42',
-  },
-  {
-    id: '0238',
-    organization: 'Arcline Manufacturing',
-    title: 'Supplier need stated',
-    category: 'Priority',
-    temperature: 'warm',
-    owner: 'D. Mehta',
-    updated: 'Yesterday',
-  },
-  {
-    id: '0233',
-    organization: 'Vantage Financial',
-    title: 'Platform investment referenced',
-    category: 'Watch',
-    temperature: 'watch',
-    owner: null,
-    updated: 'Yesterday',
-  },
-];
-
-export const temperatureDefinitions: {
-  temperature: Temperature;
-  summary: string;
-  examples: string[];
-}[] = [
-  {
-    temperature: 'very-hot',
-    summary: 'An explicit, time-bound requirement is on the table.',
-    examples: [
-      'Active requirement',
-      'Immediate need',
-      'Named owner opportunity',
-    ],
-  },
-  {
-    temperature: 'hot',
-    summary: 'Strong indicators of near-term commercial activity.',
-    examples: ['Sustained activity in a relevant area', 'Announced expansion', 'New capacity'],
-  },
-  {
-    temperature: 'warm',
-    summary: 'Relevant movement without a stated requirement yet.',
-    examples: ['Partnership activity', 'Stated direction', 'Organizational change'],
-  },
-  {
-    temperature: 'watch',
-    summary: 'Worth monitoring; not yet actionable.',
-    examples: ['Early market chatter', 'Single unconfirmed reference'],
-  },
-];

@@ -6,7 +6,6 @@ export type AnalyticsEvent =
   | 'hero_opportunityx_click'
   | 'nav_product_click'
   | 'contact_submit'
-  | 'product_demo_click'
   | 'careers_view'
   | 'cta_talk_to_us_click';
 

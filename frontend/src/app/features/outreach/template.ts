@@ -1,4 +1,3 @@
-import { opportunityDisplayType } from '@/app/constants/opportunity'
 import type { Opportunity, OpportunityCompanyRow, User } from '@/app/types'
 import { firstNameOf } from '@/app/utils/format'
 
@@ -41,91 +40,85 @@ export function companyRowToOpportunity(row: OpportunityCompanyRow): Opportunity
   }
 }
 
-function hiringFilterLabel(opportunity: Opportunity): string | null {
-  const filters = opportunity.hiringFilters
-  if (!filters) return null
-  const bits: string[] = []
-  if (filters.teams.length) bits.push(`Team: ${filters.teams.join(', ')}`)
-  if (filters.locations.length) bits.push(`Location: ${filters.locations.join(', ')}`)
-  if (filters.flexibilities.length) {
-    bits.push(`Flexibility: ${filters.flexibilities.join(', ')}`)
-  }
-  return bits.length ? bits.join(' · ') : null
+function greetingLine(opportunity: Opportunity): string {
+  const name = opportunity.contact?.name?.trim()
+  return name ? `Hi ${firstNameOf(name)},` : 'Hi,'
 }
 
-/** `Regarding {title} — {sender company}` */
-export function buildSubject(opportunity: Opportunity, sender: User): string {
-  if (opportunity.type === 'hiring' && (opportunity.signalCount || opportunity.teamBreakdown)) {
-    return `Supporting your open roles at ${opportunity.companyName} — ${sender.company}`
+function signatureBlock(sender: User): string {
+  return [sender.name, sender.company, sender.phone, sender.email].filter(Boolean).join('\n')
+}
+
+function focusTeams(opportunity: Opportunity): string[] {
+  const selected = opportunity.hiringFilters?.teams?.map((t) => t.trim()).filter(Boolean) ?? []
+  if (selected.length) return selected
+  const top = opportunity.teamBreakdown?.[0]?.name?.trim()
+  return top ? [top] : []
+}
+
+/** `{requirement} for {organization}` — never invents a category or sender brand. */
+export function buildSubject(opportunity: Opportunity, _sender: User): string {
+  const org = opportunity.companyName.trim()
+  if (opportunity.type === 'hiring') {
+    return org ? `Staffing support for ${org}` : 'Staffing support'
   }
-  return `Regarding ${opportunity.title} — ${sender.company}`
+  const title = opportunity.title.trim()
+  if (!org) return title || 'Staffing support'
+  if (!title) return `Staffing support for ${org}`
+  if (title.toLowerCase().includes(org.toLowerCase())) return title
+  if (title.length > 90) return `Staffing support for ${org}`
+  return `${title} for ${org}`
 }
 
 /**
- * Professional default body. Deliberately claims nothing about capabilities
- * that was not supplied by the workspace, and is fully editable before send.
+ * Professional starting draft. Fills only title, organization, team, and the
+ * sender profile. Deadline and source are never mentioned. Fully editable.
  */
 export function buildBody(opportunity: Opportunity, sender: User): string {
-  const contactName = opportunity.contact?.name
-  const greeting = contactName ? firstNameOf(contactName) : 'team'
-  const signature = [sender.name, sender.jobTitle, sender.company, sender.phone ?? sender.email]
-    .filter(Boolean)
-    .join('\n')
+  const org = opportunity.companyName.trim()
+  const title = opportunity.title.trim()
+  const signoff = signatureBlock(sender)
 
   if (opportunity.type === 'hiring') {
-    const matched = opportunity.signalCount ?? 0
-    const total = opportunity.totalOpeningCount ?? matched
-    const teams = opportunity.teamBreakdown ?? []
-    const focus = teams[0]
-    const filterLabel = hiringFilterLabel(opportunity)
-    const teamLine = teams.length
-      ? `Looking across those roles, the strongest concentrations appear in ${teams
-          .slice(0, 3)
-          .map((t) => `${t.name} (${t.count})`)
-          .join(', ')}.`
-      : null
-
-    const countLine = filterLabel
-      ? matched > 0
-        ? `I noticed ${opportunity.companyName} currently has about ${total} open role${total === 1 ? '' : 's'}, with ${matched} matching ${filterLabel}, and wanted to reach out.`
-        : `I noticed ${opportunity.companyName} is actively hiring and wanted to reach out.`
-      : matched > 0
-        ? `I noticed ${opportunity.companyName} currently has about ${matched} open role${matched === 1 ? '' : 's'} and wanted to reach out.`
-        : `I noticed ${opportunity.companyName} is actively hiring and wanted to reach out.`
+    const teams = focusTeams(opportunity)
+    const roleBit = teams.length
+      ? `, including ${teams.join(', ')} roles`
+      : ''
 
     return [
-      `Hi ${greeting},`,
+      greetingLine(opportunity),
       '',
-      countLine,
+      `I came across hiring activity at ${org || 'your organization'} and wanted to reach out.`,
       '',
-      teamLine,
+      `We help organizations source qualified professionals for open roles${roleBit}.`,
       '',
-      focus
-        ? `If helpful, our team can help source and screen candidates for requirements like ${focus.name} — aligned to the roles you already have open.`
-        : 'If helpful, our team can help source and screen candidates aligned to the roles you already have open.',
+      'If you are still filling these roles, I’d be happy to understand the staffing needs and see whether we could support your team.',
       '',
-      'Would you be open to a brief conversation about where support would be most useful?',
+      'Would you be open to a quick conversation?',
       '',
-      'Best regards,',
-      '',
-      signature,
-    ]
-      .filter((line) => line !== null)
-      .join('\n')
+      'Best,',
+      signoff,
+    ].join('\n')
   }
 
-  const typeLabel = opportunityDisplayType(opportunity).toLowerCase()
+  const requirement = title || 'staffing'
+  const requirementPhrase = /requirement/i.test(requirement)
+    ? requirement
+    : `${requirement} requirement`
+  const forOrg = org ? ` for ${org}` : ''
+
   return [
-    `Hi ${greeting},`,
+    greetingLine(opportunity),
     '',
-    `I came across your ${typeLabel} regarding ${opportunity.title} at ${opportunity.companyName} and wanted to reach out.`,
+    `I came across the ${requirementPhrase}${forOrg} and wanted to reach out.`,
     '',
-    'Based on the requirements outlined, I believe our team may be able to support you with the initiative.',
+    'We help organizations source qualified professionals for staffing requirements, including specialized roles such as this.',
     '',
-    'I’d be happy to share relevant capabilities, experience, and examples of how we could help. If it makes sense, would you be open to a brief conversation?',
+    'If this requirement is still active, I’d be happy to understand the staffing needs and see whether we could support your team.',
     '',
-    'Best regards,',
+    'Would you be open to a quick conversation?',
     '',
-    signature,
+    'Best,',
+    signoff,
   ].join('\n')
 }

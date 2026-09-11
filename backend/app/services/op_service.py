@@ -718,7 +718,7 @@ def _opportunities(user_id: int) -> list[dict[str, Any]]:
     jobs, _ = _load(user_id)
     mapped = [map_opportunity(row) for row in jobs]
     visible = [o for o in mapped if o["temperature"] in _VISIBLE_TEMPERATURES]
-    return _apply_outreach_state(user_id, visible)
+    return _apply_assignment_state(user_id, _apply_outreach_state(user_id, visible))
 
 
 def _apply_outreach_state(
@@ -745,6 +745,34 @@ def _apply_outreach_state(
             row["lastContactChannel"] = sent.get("channel") or "email"
         out.append(row)
     return out
+
+
+def _apply_assignment_state(
+    user_id: int, items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Overlay persisted Assign-to-me ownership onto notices and companies."""
+    try:
+        from app.repositories import assignment_repository
+
+        owned = assignment_repository.map_for_user(user_id)
+    except Exception:
+        return items
+    if not owned:
+        return items
+    out: list[dict[str, Any]] = []
+    for item in items:
+        row = dict(item)
+        assignment = owned.get(str(row.get("id") or ""))
+        if assignment:
+            row["assignedToId"] = assignment["assignedToId"]
+            row["assignedToName"] = assignment["assignedToName"]
+            row["assignedAt"] = assignment["assignedAt"]
+        out.append(row)
+    return out
+
+
+def _decorate_ownership(user_id: int, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _apply_assignment_state(user_id, _apply_outreach_state(user_id, items))
 
 
 # ---------------------------------------------------------------- filtering
@@ -1207,7 +1235,7 @@ def _hiring_signal_from_jobs(
         locations_selected=locs_sel,
         flex_selected=flex_sel,
     )
-    opportunity = _apply_outreach_state(user_id, [opportunity])[0]
+    opportunity = _decorate_ownership(user_id, [opportunity])[0]
 
     return {
         "companyId": token,
@@ -1289,7 +1317,7 @@ def _hiring_signal_from_persisted(
         )
         opportunity["signalCount"] = total if not (teams_sel or locs_sel or flex_sel) else 0
         opportunity["teamBreakdown"] = signal.get("team_breakdown") or []
-        opportunity = _apply_outreach_state(user_id, [opportunity])[0]
+        opportunity = _decorate_ownership(user_id, [opportunity])[0]
         return {
             "companyId": token,
             "companyName": signal["company_name"],
@@ -1489,7 +1517,7 @@ def _company_attention_from_persisted(
                 "badges": badges,
             }
         )
-    return _apply_outreach_state(user_id, items)
+    return _decorate_ownership(user_id, items)
 
 
 def list_opportunity_companies(*, user_id: int, params: Any) -> dict[str, Any]:
@@ -1549,10 +1577,10 @@ def get_opportunity(*, user_id: int, opportunity_id: str) -> dict[str, Any] | No
 
     if wanted.startswith("company:"):
         company = company_as_opportunity(user_id=user_id, company_id=wanted)
-        return _apply_outreach_state(user_id, [company])[0] if company else None
+        return _decorate_ownership(user_id, [company])[0] if company else None
 
     jobs, vendors = _load(user_id)
-    mapped = _apply_outreach_state(user_id, [map_opportunity(row) for row in jobs])
+    mapped = _decorate_ownership(user_id, [map_opportunity(row) for row in jobs])
     found = next((item for item in mapped if item["id"] == wanted), None)
     if found:
         matched = match_vendors_to_tenders(
@@ -1571,7 +1599,7 @@ def get_opportunity(*, user_id: int, opportunity_id: str) -> dict[str, Any] | No
 
     # Commercial table may request the employer token directly.
     company = company_as_opportunity(user_id=user_id, company_id=wanted)
-    return _apply_outreach_state(user_id, [company])[0] if company else None
+    return _decorate_ownership(user_id, [company])[0] if company else None
 
 
 # ------------------------------------------------------------------ vendors
@@ -1752,6 +1780,22 @@ def dashboard_metrics(
         total_openings = 0
         companies_this_week = set()
 
+    me = str(user_id)
+    mine = [
+        lead
+        for lead in _workspace_leads(
+            user_id=user_id,
+            types=types,
+            detected_within_days=detected_within_days,
+            countries=countries,
+        )
+        if str(lead.get("assignedToId") or "") == me
+    ]
+    assigned_to_me = len(mine)
+    assigned_to_me_not_contacted = sum(
+        1 for lead in mine if lead.get("outreachStatus") in {None, "not_contacted"}
+    )
+
     return {
         "totalVendors": len(_agency_rollup(user_id)),
         "totalOpportunities": len(notices) + len(commercial_companies),
@@ -1760,21 +1804,62 @@ def dashboard_metrics(
         # even when the user narrows the window to 24 hours.
         "opportunitiesAddedThisWeek": notices_this_week + len(companies_this_week),
         "veryHot": len(very_hot_opps),
-        # Nothing is owned or contacted until the CRM tables exist.
-        "veryHotNeedingAttention": len(very_hot_opps),
+        "veryHotNeedingAttention": sum(
+            1
+            for i in very_hot_opps
+            if not i.get("assignedToId")
+        ),
         # Hot = commercial companies with hiring (Greenhouse / Lever / Ashby).
         # hotUnassigned keeps total open roles for the card caption.
         "hot": len(commercial_companies),
         "hotUnassigned": total_openings,
-        "assignedToMe": 0,
-        "assignedToMeNotContacted": 0,
+        "assignedToMe": assigned_to_me,
+        "assignedToMeNotContacted": assigned_to_me_not_contacted,
         "contactedThisWeek": 0,
         "contactedByMeThisWeek": 0,
     }
 
 
 def pipeline_summary(*, user_id: int) -> dict[str, Any]:
-    return {"assigned": 0, "needsOutreach": 0, "contacted": 0, "followUp": 0}
+    me = str(user_id)
+    mine = [
+        lead
+        for lead in _workspace_leads(user_id=user_id)
+        if str(lead.get("assignedToId") or "") == me
+    ]
+    needs = sum(1 for lead in mine if lead.get("outreachStatus") in {None, "not_contacted"})
+    contacted = sum(1 for lead in mine if lead.get("outreachStatus") == "contacted")
+    follow = sum(1 for lead in mine if lead.get("outreachStatus") == "follow_up_required")
+    return {
+        "assigned": len(mine),
+        "needsOutreach": needs,
+        "contacted": contacted,
+        "followUp": follow,
+    }
+
+
+def _workspace_leads(
+    *,
+    user_id: int,
+    types: list[str] | None = None,
+    detected_within_days: int | None = None,
+    countries: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Government notices plus one row per commercial company."""
+    items = _scoped(user_id, types, detected_within_days, countries)
+    notices = [i for i in items if i.get("type") != "hiring"]
+    hiring = [i for i in items if i.get("type") == "hiring"]
+    if hiring:
+        companies = _decorate_ownership(user_id, _company_signals(hiring))
+    elif _types_include_hiring(types):
+        companies = _company_attention_from_persisted(
+            user_id,
+            countries=countries,
+            detected_within_days=detected_within_days,
+        )
+    else:
+        companies = []
+    return notices + companies
 
 
 _SURGE_WINDOW_DAYS = 14
@@ -1918,12 +2003,11 @@ def needs_attention(
     undated = sorted((i for i in notices if i not in closing), key=_by_priority)
 
     ordered = closing + surging + undated + steady
-    return {
-        "items": [
-            row if row.get("kind") else {**row, "kind": "notice"}
-            for row in ordered[: max(1, limit)]
-        ]
-    }
+    decorated = _decorate_ownership(
+        user_id,
+        [row if row.get("kind") else {**row, "kind": "notice"} for row in ordered],
+    )
+    return {"items": decorated[: max(1, limit)]}
 
 
 def upcoming_deadlines(
@@ -1962,7 +2046,110 @@ def team_activity(
 
 
 def my_assignments(*, user_id: int) -> dict[str, Any]:
-    return {"items": []}
+    me = str(user_id)
+    items = [
+        lead
+        for lead in _workspace_leads(user_id=user_id)
+        if str(lead.get("assignedToId") or "") == me
+    ]
+    return {"items": items}
+
+
+def assign_to_me(*, user_id: int, opportunity_id: str) -> dict[str, Any]:
+    from fastapi import HTTPException, status
+
+    from app.repositories import assignment_repository, user_repository
+    from app.repositories import outreach_repository
+
+    wanted = str(opportunity_id or "").strip()
+    if not wanted:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="opportunityId required")
+    found = get_opportunity(user_id=user_id, opportunity_id=wanted)
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opportunity not found")
+    actor = user_repository.find_by_id(user_id) or {}
+    actor_name = str(actor.get("name") or "You")
+    assignment_repository.upsert(
+        user_id=user_id,
+        opportunity_id=wanted,
+        assigned_to_id=user_id,
+        assigned_to_name=actor_name,
+    )
+    try:
+        title = found.get("title") or found.get("companyName") or wanted
+        outreach_repository.create_activity(
+            user_id=user_id,
+            opportunity_id=wanted,
+            opportunity_title=title,
+            type="assigned",
+            actor_id=user_id,
+            actor_name=actor_name,
+            message=f"{actor_name} assigned this to themselves.",
+            detail=None,
+            channel=None,
+        )
+    except Exception:
+        pass
+    refreshed = get_opportunity(user_id=user_id, opportunity_id=wanted)
+    assert refreshed is not None
+    return refreshed
+
+
+def unassign(*, user_id: int, opportunity_id: str) -> dict[str, Any]:
+    from fastapi import HTTPException, status
+
+    from app.repositories import assignment_repository
+    from app.repositories import outreach_repository
+    from app.repositories import user_repository
+
+    wanted = str(opportunity_id or "").strip()
+    if not wanted:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="opportunityId required")
+    found = get_opportunity(user_id=user_id, opportunity_id=wanted)
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opportunity not found")
+    assignment_repository.delete(user_id=user_id, opportunity_id=wanted)
+    actor = user_repository.find_by_id(user_id) or {}
+    actor_name = str(actor.get("name") or "You")
+    try:
+        title = found.get("title") or found.get("companyName") or wanted
+        outreach_repository.create_activity(
+            user_id=user_id,
+            opportunity_id=wanted,
+            opportunity_title=title,
+            type="unassigned",
+            actor_id=user_id,
+            actor_name=actor_name,
+            message=f"{actor_name} removed the assignment.",
+            detail=None,
+            channel=None,
+        )
+    except Exception:
+        pass
+    refreshed = get_opportunity(user_id=user_id, opportunity_id=wanted)
+    assert refreshed is not None
+    refreshed["assignedToId"] = None
+    refreshed["assignedToName"] = None
+    refreshed["assignedAt"] = None
+    return refreshed
+
+
+def list_assignments(*, user_id: int, opportunity_id: str) -> dict[str, Any]:
+    from app.repositories import assignment_repository
+
+    row = assignment_repository.get(user_id=user_id, opportunity_id=str(opportunity_id))
+    if not row:
+        return {"items": []}
+    return {
+        "items": [
+            {
+                "id": row["opportunityId"],
+                "userId": row["assignedToId"],
+                "userName": row["assignedToName"],
+                "assignedAt": row["assignedAt"],
+            }
+        ]
+    }
 
 
 def team_ownership(*, user_id: int) -> dict[str, Any]:

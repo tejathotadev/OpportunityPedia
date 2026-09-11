@@ -7,7 +7,7 @@ import { LinkButton } from '@/marketing/components/common/Button';
 import { Reveal } from '@/marketing/components/common/Reveal';
 import { SignalIndex } from '@/marketing/components/brand/SignalIndex';
 import { OpportunityPediaMark } from '@/shared/brand/Logo';
-import { ProductInteractionPreview } from '@/marketing/components/visuals/ProductInteractionPreview';
+import { ProductOutcomes } from '@/marketing/components/visuals/ProductOutcomes';
 import { HowItWorks } from '@/marketing/components/sections/HowItWorks';
 import { BenefitGrid } from '@/marketing/components/sections/BenefitGrid';
 import { FinalCta } from '@/marketing/components/sections/FinalCta';
@@ -65,11 +65,17 @@ export default function OpportunityXPage() {
                 <span aria-hidden="true" className="text-white/20">
                   /
                 </span>
-                <p className="label-meta text-white/45">Product walkthrough</p>
+                <p className="label-meta text-white/45">What teams get</p>
               </div>
-              <SignalIndex tone="inverse" entries={[{ key: 'Data', value: 'Illustrative' }]} />
+              <SignalIndex
+                tone="inverse"
+                entries={[
+                  { key: 'Product', value: 'OpportunityPedia' },
+                  { key: 'By', value: 'OpportunityX' },
+                ]}
+              />
             </div>
-            <ProductInteractionPreview />
+            <ProductOutcomes />
           </Reveal>
         </Container>
       </section>

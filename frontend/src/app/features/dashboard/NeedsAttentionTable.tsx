@@ -134,13 +134,9 @@ export function NeedsAttentionTable({
       header: 'Owner',
       hideBelow: 'md',
       width: 'w-[124px]',
-      render: (row) =>
-        // An employer is not something a single person owns.
-        isCompany(row) ? (
-          <span className="text-ink-subtle">—</span>
-        ) : (
-          <OwnerAvatar name={row.assignedToId === currentUserId ? 'You' : row.assignedToName} />
-        ),
+      render: (row) => (
+        <OwnerAvatar name={row.assignedToId === currentUserId ? 'You' : row.assignedToName} />
+      ),
     },
     {
       key: 'action',
@@ -155,16 +151,7 @@ export function NeedsAttentionTable({
           onKeyDown={(event) => event.stopPropagation()}
           role="presentation"
         >
-          {isCompany(row) ? (
-            <Button
-              size="sm"
-              variant="primary"
-              iconLeft={<Send />}
-              onClick={() => onSendOutreach(row)}
-            >
-              Send Outreach
-            </Button>
-          ) : !row.assignedToId ? (
+          {!row.assignedToId ? (
             <Button size="sm" variant="secondary" iconLeft={<UserPlus />} onClick={() => onAssign(row)}>
               Assign to me
             </Button>
@@ -193,7 +180,7 @@ export function NeedsAttentionTable({
       columns={columns}
       rows={rows}
       rowKey={(row) => row.id}
-      onRowClick={(row) => (isCompany(row) ? onSendOutreach(row) : onOpen(row))}
+      onRowClick={(row) => onOpen(row)}
       rowRail={(row) =>
         row.temperature === 'very_hot' ? TEMPERATURE_META.very_hot.rail : undefined
       }

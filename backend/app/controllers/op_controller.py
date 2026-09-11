@@ -4,8 +4,8 @@ Paths and payload shapes mirror the `!USE_MOCKS` branches in OP's
 `src/services/*.ts`, so flipping `VITE_USE_MOCKS=false` is the only change the
 frontend needs.
 
-Assignment, outreach, notes and saved views have no tables yet; those routes
-answer 501 rather than pretending the write succeeded.
+Notes and saved views have no tables yet; those routes answer 501 rather than
+pretending the write succeeded.
 """
 
 from typing import Any
@@ -16,9 +16,7 @@ from fastapi.responses import RedirectResponse
 from app.api.deps import current_user_id
 from app.services import op_service, radar_service
 
-_NOT_IMPLEMENTED = (
-    "Assignments and saved views are not wired to storage yet."
-)
+_NOT_IMPLEMENTED = "Saved views are not wired to storage yet."
 
 
 def _unavailable() -> None:
@@ -99,11 +97,27 @@ def opportunity_outreach(opportunity_id: str, user_id: int = Depends(current_use
 
 
 def opportunity_assignments(opportunity_id: str, user_id: int = Depends(current_user_id)):
-    return {"items": []}
+    return op_service.list_assignments(user_id=user_id, opportunity_id=opportunity_id)
+
+
+def assign_opportunity(
+    opportunity_id: str,
+    user_id: int = Depends(current_user_id),
+    _body: dict[str, Any] | None = Body(default=None),
+):
+    """Self-assign only. Ignores any requested userId in the body."""
+    return op_service.assign_to_me(user_id=user_id, opportunity_id=opportunity_id)
+
+
+def unassign_opportunity(
+    opportunity_id: str,
+    user_id: int = Depends(current_user_id),
+):
+    return op_service.unassign(user_id=user_id, opportunity_id=opportunity_id)
 
 
 def opportunity_write(opportunity_id: str, user_id: int = Depends(current_user_id)):
-    """Assign / save / note / follow-up — all pending their own tables."""
+    """Save / note / follow-up — pending their own tables."""
     _unavailable()
 
 

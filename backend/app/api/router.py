@@ -65,9 +65,15 @@ _OP_READS = [
 for _path, _handler in _OP_READS:
     api_router.add_api_route(_path, _handler, methods=["GET"])
 
+api_router.add_api_route(
+    Routes.OP_OPPORTUNITY_ASSIGN, op_controller.assign_opportunity, methods=["POST"]
+)
+api_router.add_api_route(
+    Routes.OP_OPPORTUNITY_ASSIGN, op_controller.unassign_opportunity, methods=["DELETE"]
+)
+
 # Writes that have no storage yet answer 501 instead of 404.
 _OP_WRITES = [
-    (Routes.OP_OPPORTUNITY_ASSIGN, op_controller.opportunity_write, ["POST", "DELETE"]),
     (Routes.OP_OPPORTUNITY_SAVED, op_controller.opportunity_write, ["POST"]),
     (Routes.OP_OPPORTUNITY_NOTES, op_controller.opportunity_write, ["POST"]),
     (Routes.OP_OPPORTUNITY_FOLLOW_UP, op_controller.opportunity_write, ["POST"]),

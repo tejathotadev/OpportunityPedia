@@ -6,7 +6,7 @@ import { LinkButton } from '@/marketing/components/common/Button';
 import { Reveal } from '@/marketing/components/common/Reveal';
 import { ProductCard } from '@/marketing/components/common/ProductCard';
 import { OpportunityPediaMark } from '@/shared/brand/Logo';
-import { OpportunityXUI } from '@/marketing/components/visuals/OpportunityXUI';
+import { ProductOutcomes } from '@/marketing/components/visuals/ProductOutcomes';
 import { HowItWorks } from '@/marketing/components/sections/HowItWorks';
 import { FinalCta } from '@/marketing/components/sections/FinalCta';
 import { site } from '@/marketing/data/site';
@@ -69,11 +69,8 @@ export default function ProductsPage() {
           <div className="lg:col-span-7">
             <Reveal delay={100}>
               <div className="bg-navy-deep p-3 md:p-4">
-                <OpportunityXUI />
+                <ProductOutcomes />
               </div>
-              <p className="mt-3 text-xs text-graphite">
-                Illustrative interface. Content shown is representative, not live data.
-              </p>
             </Reveal>
           </div>
         </div>

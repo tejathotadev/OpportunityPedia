@@ -91,7 +91,7 @@ export async function getAllOpportunities(): Promise<Opportunity[]> {
 }
 
 export async function getOpportunityById(id: string): Promise<Opportunity> {
-  const { data } = await api.get<Opportunity>(`/opportunities/${id}`)
+  const { data } = await api.get<Opportunity>(`/opportunities/${encodeURIComponent(id)}`)
   return data
 }
 
