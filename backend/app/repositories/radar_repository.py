@@ -206,7 +206,18 @@ def _sorted_copy(
 
 
 def list_jobs_for_user(user_id: int, *, limit: int = 500) -> list[dict[str, Any]]:
-    return _sorted_copy(_jobs, user_id, ("board_name", "title"), limit)
+    """Commercial rows may be capped; SAM notices are always included.
+
+    A full Greenhouse scan can exceed `limit` with hiring jobs alone, which
+    used to drop government tenders from Overview / Tenders.
+    """
+    with _LOCK:
+        mine = [dict(row) for row in _jobs if row["user_id"] == user_id]
+    sam = [row for row in mine if str(row.get("provider") or "") == "sam_gov"]
+    other = [row for row in mine if str(row.get("provider") or "") != "sam_gov"]
+    other.sort(key=lambda row: (str(row.get("board_name") or ""), str(row.get("title") or "")))
+    sam.sort(key=lambda row: (str(row.get("board_name") or ""), str(row.get("title") or "")))
+    return other[: max(1, limit)] + sam
 
 
 def list_vendors_for_user(user_id: int, *, limit: int = 500) -> list[dict[str, Any]]:

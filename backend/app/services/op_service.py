@@ -640,13 +640,56 @@ def _map_suggested_vendor(vendor: dict[str, Any]) -> dict[str, Any]:
 
 
 def _hydrate_jobs_from_details(user_id: int) -> list[dict[str, Any]]:
-    """When memory is empty (restart), rebuild SAM rows from persisted details."""
+    """SAM tenders persisted at scan time (survive restart and memory caps)."""
     try:
         from app.repositories import opportunity_detail_repository
 
         return opportunity_detail_repository.list_for_user(user_id)
     except Exception:
         return []
+
+
+def _merge_sam_details(user_id: int, jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Always overlay Postgres SAM rows so Tenders are not lost to the hiring cap."""
+    persisted = [
+        row
+        for row in _hydrate_jobs_from_details(user_id)
+        if str(row.get("provider") or "sam_gov") == "sam_gov"
+    ]
+    if not persisted:
+        return jobs
+    by_notice: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    unlabeled: list[dict[str, Any]] = []
+    for row in jobs:
+        notice_id = str(row.get("external_job_id") or "")
+        if not notice_id:
+            unlabeled.append(row)
+            continue
+        by_notice[notice_id] = row
+        order.append(notice_id)
+    for row in persisted:
+        notice_id = str(row.get("external_job_id") or "")
+        if not notice_id:
+            continue
+        existing = by_notice.get(notice_id)
+        if existing is None:
+            by_notice[notice_id] = row
+            order.append(notice_id)
+            continue
+        if not existing.get("detail") and row.get("detail"):
+            existing["detail"] = row["detail"]
+    seen: set[str] = set()
+    merged: list[dict[str, Any]] = list(unlabeled)
+    for notice_id in order:
+        if notice_id in seen:
+            continue
+        seen.add(notice_id)
+        merged.append(by_notice[notice_id])
+    for notice_id, row in by_notice.items():
+        if notice_id not in seen:
+            merged.append(row)
+    return merged
 
 
 def _load(user_id: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -658,28 +701,11 @@ def _load(user_id: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         for row in radar_repository.list_jobs_for_user(user_id, limit=5000)
         if str(row.get("provider")) in live
     ]
-    if not jobs:
-        jobs = [
-            row
-            for row in _hydrate_jobs_from_details(user_id)
-            if str(row.get("provider")) in live
-        ]
-    else:
-        # Fill detail from Supabase when an in-memory row was stored before Plan A.
-        try:
-            from app.repositories import opportunity_detail_repository
-
-            for job in jobs:
-                if job.get("detail") or str(job.get("provider")) != "sam_gov":
-                    continue
-                notice_id = str(job.get("external_job_id") or "")
-                if not notice_id:
-                    continue
-                persisted = opportunity_detail_repository.get_for_user(user_id, notice_id)
-                if persisted and persisted.get("detail"):
-                    job["detail"] = persisted["detail"]
-        except Exception:
-            pass
+    jobs = [
+        row
+        for row in _merge_sam_details(user_id, jobs)
+        if str(row.get("provider")) in live
+    ]
     vendors = [
         row
         for row in radar_repository.list_vendors_for_user(user_id, limit=5000)
