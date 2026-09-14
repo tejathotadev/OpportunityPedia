@@ -142,32 +142,39 @@ def create_activity(
     message: str,
     detail: str | None = None,
     channel: str | None = None,
+    conn=None,
 ) -> dict[str, Any]:
-    with connect_database() as conn:
+    def _run(cur) -> dict[str, Any]:
+        cur.execute(
+            f"""
+            INSERT INTO {Tables.opportunity_activities}
+                (user_id, opportunity_id, opportunity_title, type,
+                 actor_id, actor_name, message, detail, channel)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, user_id, opportunity_id, opportunity_title, type,
+                      actor_id, actor_name, message, detail, channel, created_at
+            """,
+            (
+                user_id,
+                opportunity_id,
+                opportunity_title,
+                type,
+                actor_id,
+                actor_name,
+                message,
+                detail,
+                channel,
+            ),
+        )
+        row = cur.fetchone()
+        return _map_activity(row)
+
+    if conn is not None:
         with conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {Tables.opportunity_activities}
-                    (user_id, opportunity_id, opportunity_title, type,
-                     actor_id, actor_name, message, detail, channel)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, user_id, opportunity_id, opportunity_title, type,
-                          actor_id, actor_name, message, detail, channel, created_at
-                """,
-                (
-                    user_id,
-                    opportunity_id,
-                    opportunity_title,
-                    type,
-                    actor_id,
-                    actor_name,
-                    message,
-                    detail,
-                    channel,
-                ),
-            )
-            row = cur.fetchone()
-    return _map_activity(row)
+            return _run(cur)
+    with connect_database() as owned:
+        with owned.cursor() as cur:
+            return _run(cur)
 
 
 def list_activity_for_opportunity(

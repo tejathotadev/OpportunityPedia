@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, LifeBuoy, LogOut, UserRound } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, History, LifeBuoy, LogOut, UserRound } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import { UserAvatar } from '@/app/components/common/Avatar'
@@ -77,6 +77,8 @@ function NavRow({
 
 export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarProps) {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
+  const openRadarRunsDrawer = useUiStore((state) => state.openRadarRuns)
+  const openSupport = useUiStore((state) => state.openSupport)
   const clearUserSession = useAuthStore((state) => state.clearUserSession)
   const { user } = useCurrentUser()
   const navigate = useNavigate()
@@ -88,6 +90,11 @@ export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarP
     navigate('/login', { replace: true, state: { from: CUSTOMER_HOME } })
     clearUserSession()
     toast.info('Signed out')
+  }
+
+  function openRadarRuns() {
+    onNavigate?.()
+    openRadarRunsDrawer()
   }
 
   return (
@@ -134,23 +141,41 @@ export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarP
               <NavRow item={item} collapsed={isCollapsed} onNavigate={onNavigate} />
             </li>
           ))}
+          <li>
+            <Tooltip content="Radar runs" side="right" enabled={isCollapsed}>
+              <button
+                type="button"
+                onClick={openRadarRuns}
+                className={cn(
+                  'group relative flex w-full cursor-pointer items-center gap-2.5 rounded-md text-[13.5px] font-medium transition-colors duration-150',
+                  isCollapsed ? 'h-9 w-9 justify-center' : 'h-9 px-2.5',
+                  'text-ink-secondary hover:bg-surface-sunken hover:text-ink',
+                )}
+              >
+                <History className="size-[17px] shrink-0 text-ink-muted" aria-hidden />
+                {!isCollapsed && <span className="truncate">Radar runs</span>}
+              </button>
+            </Tooltip>
+          </li>
         </ul>
       </nav>
 
       <div className={cn('shrink-0 border-t border-line py-3', isCollapsed ? 'px-3' : 'px-4')}>
         <Tooltip content="Help & Support" side="right" enabled={isCollapsed}>
-          <a
-            href="https://support.example/opportunity-pedia"
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate?.()
+              openSupport()
+            }}
             className={cn(
-              'mb-2 flex items-center gap-2.5 rounded-md text-[13.5px] font-medium text-ink-secondary transition-colors hover:bg-surface-sunken hover:text-ink',
+              'mb-2 flex w-full cursor-pointer items-center gap-2.5 rounded-md text-[13.5px] font-medium text-ink-secondary transition-colors hover:bg-surface-sunken hover:text-ink',
               isCollapsed ? 'h-9 w-9 justify-center' : 'h-9 px-2.5',
             )}
           >
             <LifeBuoy className="size-[17px] shrink-0 text-ink-muted" aria-hidden />
             {!isCollapsed && <span>Help & Support</span>}
-          </a>
+          </button>
         </Tooltip>
 
         <DropdownMenu>
@@ -189,7 +214,8 @@ export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarP
             <DropdownMenuItem
               icon={<LifeBuoy />}
               onSelect={() => {
-                window.open('https://support.example/opportunity-pedia', '_blank', 'noreferrer')
+                onNavigate?.()
+                openSupport()
               }}
             >
               Help & Support

@@ -6,6 +6,7 @@ from email.message import EmailMessage
 
 import httpx
 
+from app.core.timeouts import EMAIL_HTTP_TIMEOUT_SECONDS, SMTP_TIMEOUT_SECONDS
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def _from_address() -> str:
 
 
 def _smtp_timeout() -> float:
-    return max(1.0, float(settings.SMTP_TIMEOUT_SECONDS or 8))
+    return max(1.0, float(SMTP_TIMEOUT_SECONDS))
 
 
 def _send_via_resend(
@@ -61,7 +62,7 @@ def _send_via_resend(
             "Content-Type": "application/json",
         },
         json=payload,
-        timeout=15.0,
+        timeout=float(EMAIL_HTTP_TIMEOUT_SECONDS),
     )
     if response.status_code >= 400:
         detail = response.text[:400]
@@ -129,13 +130,27 @@ def send_password_setup(
     name: str,
     setup_url: str,
     reason: str = "payment",
-) -> bool:
-    """Return True if mailed; False if missing/failed (caller still gets setup_url)."""
+) -> tuple[bool, str | None]:
+    """Return (sent, error). Caller keeps setup_url as admin fallback when not sent."""
     if not email_configured():
-        return False
+        return False, "Email is not configured (set RESEND_API_KEY or SMTP_*)"
 
     subject = "Create your OpportunityPedia password"
-    if reason == "invite":
+    if reason == "teammate":
+        intro = (
+            "You've been invited to a teammate seat on OpportunityPedia. "
+            "Create your password using this link (valid for 24 hours):"
+        )
+        intro_html = (
+            "You've been invited to a teammate seat on OpportunityPedia. "
+            f'<a href="{setup_url}">Create your password</a> '
+            "(link valid for 24 hours)."
+        )
+        after = (
+            "After you set your password, you can sign in and work in your "
+            "team's shared workspace right away."
+        )
+    elif reason in {"invite", "free"}:
         intro = (
             "Your OpportunityPedia account is ready. "
             "Create your password using this link (valid for 24 hours):"
@@ -144,6 +159,10 @@ def send_password_setup(
             "Your OpportunityPedia account is ready. "
             f'<a href="{setup_url}">Create your password</a> '
             "(link valid for 24 hours)."
+        )
+        after = (
+            "After you set your password, we will finish setting up your workspace "
+            "(usually about 10 minutes). You can sign in as soon as setup is complete."
         )
     else:
         intro = (
@@ -155,26 +174,26 @@ def send_password_setup(
             f'<a href="{setup_url}">Create your password</a> '
             "(link valid for 24 hours)."
         )
+        after = "After you set your password, continue from the link destination."
 
     text = (
         f"Hi {name},\n\n"
         f"{intro}\n\n"
         f"{setup_url}\n\n"
-        "After you set your password, sign in at the login page.\n\n"
+        f"{after}\n\n"
         "If you did not expect this email, you can ignore it.\n"
     )
     html = (
         f"<p>Hi {name},</p>"
         f"<p>{intro_html}</p>"
-        "<p>After you set your password, sign in at the login page.</p>"
+        f"<p>{after}</p>"
     )
     try:
         _deliver(to_email=to_email, subject=subject, text=text, html=html)
-        return True
+        return True, None
     except Exception as exc:
         logger.warning("password-setup email failed to %s: %s", to_email, exc)
-        return False
-
+        return False, str(exc)[:300]
 
 def send_outreach_email(
     *,

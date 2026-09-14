@@ -10,7 +10,8 @@ import { toast } from '@/app/store/useToastStore'
 import { BrandMark, OpportunityPediaMark } from '@/shared/brand/Logo'
 
 /**
- * Completes an invite / payment setup link, then sends the user to /login.
+ * Completes an invite / free / payment setup link, then routes to workspace
+ * wait (provisioning plans) or login (legacy immediate-active plans).
  */
 export default function SetPasswordPage() {
   const navigate = useNavigate()
@@ -58,6 +59,13 @@ export default function SetPasswordPage() {
     setLoading(true)
     try {
       const result = await setCustomerPassword(token, password)
+      if (result.next === 'workspace_setup' || result.status === 'provisioning') {
+        toast.success('Password saved', 'Setting up your workspace next.')
+        navigate(`/workspace-setup?email=${encodeURIComponent(result.email)}`, {
+          replace: true,
+        })
+        return
+      }
       toast.success('Password saved', `You can sign in as ${result.email}.`)
       navigate('/login', { replace: true, state: { email: result.email } })
     } catch (err) {
@@ -87,10 +95,10 @@ export default function SetPasswordPage() {
         <div>
           <p className="text-sm uppercase tracking-[0.14em] text-white/70">Account setup</p>
           <h1 className="mt-3 max-w-sm text-3xl font-semibold tracking-[-0.03em]">
-            Choose a password, then sign in.
+            Choose a password to continue.
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/75">
-            This link is valid for 24 hours. After saving, you’ll go to the login page.
+            This link is valid for 24 hours. Next we finish setting up your workspace.
           </p>
         </div>
         <p className="text-xs text-white/50">OpportunityPedia by OpportunityX</p>
@@ -103,7 +111,7 @@ export default function SetPasswordPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-[-0.03em] text-ink">Create your password</h1>
           <p className="mt-2 text-sm text-graphite">
-            Then sign in with your email and the password you choose here.
+            Then we will finish preparing your workspace.
           </p>
 
           <form className="mt-8 space-y-4" onSubmit={onSubmit}>

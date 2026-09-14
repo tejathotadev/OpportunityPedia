@@ -52,6 +52,10 @@ export function OpportunityFilterBar({
   mode = 'companies',
   onChange,
 }: OpportunityFilterBarProps) {
+  const showTitleMatch = mode === 'openings'
+  const showDeadline = mode === 'openings' || mode === 'tenders'
+  const showIndustryPlaceholder = mode === 'companies'
+
   const [term, setTerm] = useState(filters.search ?? '')
   const [titleTerm, setTitleTerm] = useState(filters.titleMatch ?? '')
   const debouncedTerm = useDebouncedValue(term, 250)
@@ -65,6 +69,14 @@ export function OpportunityFilterBar({
     setTitleTerm(filters.titleMatch ?? '')
   }, [filters.titleMatch])
 
+  // Commercial no longer exposes title match — drop any stale URL value.
+  useEffect(() => {
+    if (mode === 'companies' && filters.titleMatch) {
+      onChange({ ...filters, titleMatch: undefined })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+
   useEffect(() => {
     if ((filters.search ?? '') !== debouncedTerm) {
       onChange({ ...filters, search: debouncedTerm || undefined })
@@ -73,25 +85,37 @@ export function OpportunityFilterBar({
   }, [debouncedTerm])
 
   useEffect(() => {
+    if (!showTitleMatch) return
     if ((filters.titleMatch ?? '') !== debouncedTitle) {
       onChange({ ...filters, titleMatch: debouncedTitle || undefined })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedTitle])
+  }, [debouncedTitle, showTitleMatch])
 
   const update = (patch: Partial<OpportunityFilters>) => onChange({ ...filters, ...patch })
   const activeCount = countActiveFilters({
     ...filters,
     type: undefined,
     temperature: undefined,
+    titleMatch: showTitleMatch ? filters.titleMatch : undefined,
   })
 
   const chips: Array<{ key: string; label: string; onRemove: () => void }> = []
-  if (filters.titleMatch?.trim()) {
+  if (showTitleMatch && filters.titleMatch?.trim()) {
     chips.push({
       key: 'title',
       label: `Title match: ${filters.titleMatch.trim()}`,
       onRemove: () => update({ titleMatch: undefined }),
+    })
+  }
+  if (filters.search?.trim()) {
+    chips.push({
+      key: 'search',
+      label: `Search: ${filters.search.trim()}`,
+      onRemove: () => {
+        setTerm('')
+        update({ search: undefined })
+      },
     })
   }
   if (filters.companyId) {
@@ -116,7 +140,7 @@ export function OpportunityFilterBar({
       onRemove: () => update({ detectedWithinDays: undefined }),
     })
   }
-  if (filters.deadlineWithinDays) {
+  if (showDeadline && filters.deadlineWithinDays) {
     chips.push({
       key: 'deadline',
       label: `Deadline within ${filters.deadlineWithinDays} days`,
@@ -132,9 +156,10 @@ export function OpportunityFilterBar({
         : 'Search openings'
 
   function clearFilters() {
+    setTerm('')
+    setTitleTerm('')
     onChange({
       type: filters.type,
-      // Clear company too — "All companies" / leave drill-in.
       companyId: undefined,
       search: undefined,
       titleMatch: undefined,
@@ -149,8 +174,8 @@ export function OpportunityFilterBar({
   return (
     <div className="border-b border-line">
       <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-        {mode !== 'tenders' && (
-          <div className="min-w-[180px] flex-1 sm:max-w-[14rem]">
+        {showTitleMatch && (
+          <div className="w-full sm:w-[15rem]">
             <TextInput
               value={titleTerm}
               onChange={(event) => setTitleTerm(event.target.value)}
@@ -161,51 +186,57 @@ export function OpportunityFilterBar({
             />
           </div>
         )}
-        <div className="min-w-[160px] flex-1 sm:max-w-[12rem]">
+
+        <div className="w-full min-w-[12rem] sm:w-[14rem] sm:flex-none">
           <TextInput
             value={term}
             onChange={(event) => setTerm(event.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
+            iconLeft={<Search />}
             className="h-8"
           />
         </div>
 
-        <SingleSelectFilter
-          label="Detected"
-          options={DETECTED_OPTIONS}
-          value={filters.detectedWithinDays ? String(filters.detectedWithinDays) : undefined}
-          anyValue="any"
-          onChange={(next) => update({ detectedWithinDays: next ? Number(next) : undefined })}
-        />
-        <SingleSelectFilter
-          label="Location"
-          options={COUNTRY_OPTIONS}
-          value={filters.country?.[0]}
-          anyValue="any"
-          onChange={(next) => update({ country: next ? [next] : undefined })}
-        />
-        <button
-          type="button"
-          disabled
-          title="Sector filters from title matching — coming soon"
-          className={cn(
-            'inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium',
-            'border-line bg-surface-muted text-ink-subtle',
-          )}
-        >
-          Industry
-          <span className="text-[11px] font-normal tracking-wide uppercase">Coming soon</span>
-        </button>
-        {(mode === 'openings' || mode === 'tenders') && (
+        <div className="flex flex-wrap items-center gap-2">
           <SingleSelectFilter
-            label="Deadline"
-            options={DEADLINE_OPTIONS}
-            value={filters.deadlineWithinDays ? String(filters.deadlineWithinDays) : undefined}
+            label="Detected"
+            options={DETECTED_OPTIONS}
+            value={filters.detectedWithinDays ? String(filters.detectedWithinDays) : undefined}
             anyValue="any"
-            onChange={(next) => update({ deadlineWithinDays: next ? Number(next) : undefined })}
+            onChange={(next) => update({ detectedWithinDays: next ? Number(next) : undefined })}
           />
-        )}
+          <SingleSelectFilter
+            label="Location"
+            options={COUNTRY_OPTIONS}
+            value={filters.country?.[0]}
+            anyValue="any"
+            onChange={(next) => update({ country: next ? [next] : undefined })}
+          />
+          {showIndustryPlaceholder && (
+            <button
+              type="button"
+              disabled
+              title="Industry filters coming soon"
+              className={cn(
+                'inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium',
+                'border-line bg-surface-muted text-ink-subtle',
+              )}
+            >
+              Industry
+              <span className="text-[10.5px] font-normal tracking-wide uppercase">Soon</span>
+            </button>
+          )}
+          {showDeadline && (
+            <SingleSelectFilter
+              label="Deadline"
+              options={DEADLINE_OPTIONS}
+              value={filters.deadlineWithinDays ? String(filters.deadlineWithinDays) : undefined}
+              anyValue="any"
+              onChange={(next) => update({ deadlineWithinDays: next ? Number(next) : undefined })}
+            />
+          )}
+        </div>
       </div>
 
       {chips.length > 0 && (

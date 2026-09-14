@@ -1,5 +1,6 @@
-import { Check, ChevronDown, Info, Mail, Send, UserPlus } from 'lucide-react'
+import { Check, ChevronDown, Info, Mail, Send } from 'lucide-react'
 
+import { AssignCell } from '@/app/components/common/AssignCell'
 import { UserAvatar } from '@/app/components/common/Avatar'
 import { Button } from '@/app/components/common/Button'
 import {
@@ -12,14 +13,14 @@ import {
 } from '@/app/components/common/DropdownMenu'
 import { channelLabel, outreachStatusMeta } from '@/app/constants/opportunity'
 import { useCurrentUser } from '@/app/providers/currentUserContext'
-import type { Opportunity } from '@/app/types'
+import type { Opportunity, User } from '@/app/types'
 import { formatDateTimeFull, formatRelative, getTimezoneLabel } from '@/app/utils/date'
 import { firstNameOf } from '@/app/utils/format'
 import { canSendOutreach } from '@/app/utils/opportunity'
 
 interface OpportunityActionBarProps {
   opportunity: Opportunity
-  onAssignToMe: () => void
+  onAssign: (assignee: User) => void
   onReassign: (userId: string) => void
   onUnassign: () => void
   onSendOutreach: () => void
@@ -28,12 +29,12 @@ interface OpportunityActionBarProps {
 }
 
 /**
- * Ownership and outreach state plus the two primary actions. The duplicate
- * outreach notice sits directly above the buttons so it cannot be missed.
+ * Ownership and outreach state plus the two primary actions.
+ * Assign wording matches the Opportunities / Overview tables.
  */
 export function OpportunityActionBar({
   opportunity,
-  onAssignToMe,
+  onAssign,
   onReassign,
   onUnassign,
   onSendOutreach,
@@ -51,30 +52,27 @@ export function OpportunityActionBar({
   return (
     <div className="space-y-3 border-b border-line bg-surface-muted px-5 py-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11.5px] font-semibold tracking-[0.04em] text-ink-subtle uppercase">
-            Owner
+            Assign
           </p>
-          {opportunity.assignedToName ? (
-            <div className="mt-1.5 flex items-center gap-2">
-              <UserAvatar
-                name={opportunity.assignedToName}
-                tone={ownedByMe ? user.avatarTone : undefined}
-                size="sm"
+          {opportunity.assignedToId ? (
+            <div className="mt-1.5">
+              <AssignCell
+                assignedToId={opportunity.assignedToId}
+                assignedToName={opportunity.assignedToName}
+                currentUserId={user.id}
+                team={team}
+                onAssign={onAssign}
               />
-              <div className="min-w-0">
-                <p className="truncate text-[13.5px] font-medium text-ink">
-                  {ownedByMe ? `${opportunity.assignedToName} (you)` : opportunity.assignedToName}
+              {opportunity.assignedAt && (
+                <p
+                  className="mt-1 text-[12px] text-ink-muted"
+                  title={formatDateTimeFull(opportunity.assignedAt)}
+                >
+                  Assigned {formatRelative(opportunity.assignedAt)}
                 </p>
-                {opportunity.assignedAt && (
-                  <p
-                    className="text-[12px] text-ink-muted"
-                    title={formatDateTimeFull(opportunity.assignedAt)}
-                  >
-                    Assigned {formatRelative(opportunity.assignedAt)}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           ) : (
             <p className="mt-1.5 text-[13.5px] text-ink-muted">Unassigned</p>
@@ -156,14 +154,15 @@ export function OpportunityActionBar({
 
       <div className="flex flex-wrap items-center gap-2">
         {!opportunity.assignedToId ? (
-          <Button
-            variant="secondary"
-            iconLeft={<UserPlus />}
-            onClick={onAssignToMe}
-            loading={isAssigning}
-          >
-            Assign to me
-          </Button>
+          <AssignCell
+            assignedToId={null}
+            assignedToName={null}
+            currentUserId={user.id}
+            team={team}
+            isAssigning={isAssigning}
+            onAssign={onAssign}
+            size="md"
+          />
         ) : ownedByMe ? (
           <Button variant="secondary" iconLeft={<Check />} disabled>
             Assigned to you
@@ -172,7 +171,7 @@ export function OpportunityActionBar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" iconRight={<ChevronDown />}>
-                Assigned to {opportunity.assignedToName}
+                Reassign
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">

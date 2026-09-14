@@ -59,8 +59,8 @@ export default function ProductsPage() {
                 >
                   Explore OpportunityPedia
                 </LinkButton>
-                <LinkButton to="/contact" variant="secondary" size="lg">
-                  Request access
+                <LinkButton to="/get-started" variant="secondary" size="lg">
+                  Start free plan
                 </LinkButton>
               </div>
             </Reveal>

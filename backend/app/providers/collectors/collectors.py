@@ -660,14 +660,25 @@ def fetch_sam_gov(source: dict[str, Any], client: httpx.Client) -> tuple[list[di
     import os
 
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=True)
-    api_key = (os.getenv("SAM_GOV_API_KEY") or settings.SAM_GOV_API_KEY or "").strip()
+    # Prefer per-user key from admin activate; fall back to shared env key.
+    api_key = (
+        str(source.get("api_key") or "").strip()
+        or (os.getenv("SAM_GOV_API_KEY") or settings.SAM_GOV_API_KEY or "").strip()
+    )
     if not api_key:
-        return [], "SAM_GOV_API_KEY missing in .env"
+        return [], "Government source API key not configured for this workspace"
 
     lookback = int(os.getenv("SAM_LOOKBACK_DAYS") or getattr(settings, "SAM_LOOKBACK_DAYS", 180) or 180)
     posted_from, posted_to = _posted_window(lookback)
-    allowed = set(settings.sam_naics_code_list or NAICS_CATEGORIES)
-    query_codes = settings.sam_naics_query_list
+    source_codes = source.get("naics_codes")
+    if isinstance(source_codes, (list, tuple)) and source_codes:
+        query_codes = [str(c).strip() for c in source_codes if str(c).strip()]
+        allowed = set(query_codes)
+    else:
+        allowed = set(settings.sam_naics_code_list or NAICS_CATEGORIES)
+        query_codes = settings.sam_naics_query_list
+    if not query_codes:
+        return [], "No NAICS codes configured for this workspace"
     max_rows = max(_SAM_PAGE_SIZE, int(settings.SAM_MAX_ROWS_PER_CODE or 2000))
     exclude_expired = bool(settings.SAM_EXCLUDE_EXPIRED)
     entity_budget = max(0, int(settings.SAM_ENTITY_LOOKUPS or 0))

@@ -1,7 +1,7 @@
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import BaseModel, Field
 
-from app.api.deps import bearer_token
+from app.api.deps import bearer_token, require_customer
 from app.services import account_service, auth_service
 
 
@@ -37,3 +37,24 @@ def set_password(body: SetPasswordBody):
 
 def resend_setup(body: EmailBody):
     return account_service.resend_password_setup(body.email)
+
+
+def provisioning_status(email: str = Query(min_length=3)):
+    return account_service.provisioning_status(email=email)
+
+
+def customer_me(customer: dict = Depends(require_customer)):
+    return customer
+
+
+class UpdateProfileBody(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    phone: str = Field(default="", max_length=40)
+
+
+def update_customer_profile(body: UpdateProfileBody, customer: dict = Depends(require_customer)):
+    return auth_service.update_customer_profile(
+        actor=customer,
+        name=body.name,
+        phone=body.phone,
+    )

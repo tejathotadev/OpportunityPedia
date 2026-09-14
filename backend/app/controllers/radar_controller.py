@@ -5,4 +5,5 @@ from app.services import radar_service
 
 
 def latest_results(customer: dict = Depends(require_customer)):
-    return radar_service.latest_results(user_id=int(customer["id"]))
+    workspace_id = int(customer.get("workspace_id") or customer["id"])
+    return radar_service.latest_results(user_id=workspace_id)

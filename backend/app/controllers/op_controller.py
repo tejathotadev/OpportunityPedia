@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import BackgroundTasks, Body, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
-from app.api.deps import current_user_id
+from app.api.deps import current_actor_id, current_user_id
 from app.services import op_service, radar_service
 
 _NOT_IMPLEMENTED = "Saved views are not wired to storage yet."
@@ -103,17 +103,33 @@ def opportunity_assignments(opportunity_id: str, user_id: int = Depends(current_
 def assign_opportunity(
     opportunity_id: str,
     user_id: int = Depends(current_user_id),
-    _body: dict[str, Any] | None = Body(default=None),
+    actor_id: int = Depends(current_actor_id),
+    body: dict[str, Any] | None = Body(default=None),
 ):
-    """Self-assign only. Ignores any requested userId in the body."""
-    return op_service.assign_to_me(user_id=user_id, opportunity_id=opportunity_id)
+    """Assign to the actor, or to a workspace teammate when `userId` is sent."""
+    assignee_id: int | None = None
+    raw = (body or {}).get("userId")
+    if raw is not None and str(raw).strip() != "":
+        try:
+            assignee_id = int(raw)
+        except (TypeError, ValueError):
+            assignee_id = None
+    return op_service.assign_opportunity(
+        user_id=user_id,
+        actor_id=actor_id,
+        opportunity_id=opportunity_id,
+        assignee_id=assignee_id,
+    )
 
 
 def unassign_opportunity(
     opportunity_id: str,
     user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
 ):
-    return op_service.unassign(user_id=user_id, opportunity_id=opportunity_id)
+    return op_service.unassign(
+        user_id=user_id, actor_id=actor_id, opportunity_id=opportunity_id
+    )
 
 
 def opportunity_write(opportunity_id: str, user_id: int = Depends(current_user_id)):
@@ -140,14 +156,46 @@ def get_vendor(vendor_id: str, user_id: int = Depends(current_user_id)):
 # ---------------------------------------------------------------- dashboard
 
 
-def dashboard_metrics(request: Request, user_id: int = Depends(current_user_id)):
+def dashboard_metrics(
+    request: Request,
+    user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
+):
     return op_service.dashboard_metrics(
-        user_id=user_id, **op_service.scope_from_params(request.query_params)
+        user_id=user_id,
+        actor_id=actor_id,
+        **op_service.scope_from_params(request.query_params),
     )
 
 
-def dashboard_pipeline(user_id: int = Depends(current_user_id)):
-    return op_service.pipeline_summary(user_id=user_id)
+def dashboard_overview(
+    request: Request,
+    user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
+):
+    """Bundled Overview payload — one auth + one job rebuild for four widgets."""
+
+    def _named_limit(key: str, default: int) -> int:
+        raw = request.query_params.get(key)
+        try:
+            return max(1, min(int(raw), 200)) if raw else default
+        except (TypeError, ValueError):
+            return default
+
+    return op_service.dashboard_overview(
+        user_id=user_id,
+        actor_id=actor_id,
+        attention_limit=_named_limit("attention_limit", 8),
+        deadlines_limit=_named_limit("deadlines_limit", 5),
+        **op_service.scope_from_params(request.query_params),
+    )
+
+
+def dashboard_pipeline(
+    user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
+):
+    return op_service.pipeline_summary(user_id=user_id, actor_id=actor_id)
 
 
 def dashboard_needs_attention(request: Request, user_id: int = Depends(current_user_id)):
@@ -176,24 +224,29 @@ def list_activity(request: Request, user_id: int = Depends(current_user_id)):
     )
 
 
-def my_assignments(user_id: int = Depends(current_user_id)):
-    return op_service.my_assignments(user_id=user_id)
+def my_assignments(
+    user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
+):
+    return op_service.my_assignments(user_id=user_id, actor_id=actor_id)
 
 
 def team_ownership(user_id: int = Depends(current_user_id)):
     return op_service.team_ownership(user_id=user_id)
 
 
-def list_notifications(user_id: int = Depends(current_user_id)):
-    return op_service.notifications(user_id=user_id)
+def list_notifications(actor_id: int = Depends(current_actor_id)):
+    return op_service.notifications(actor_id=actor_id)
 
 
-def notification_read(notification_id: str, user_id: int = Depends(current_user_id)):
-    _unavailable()
+def notification_read(notification_id: str, actor_id: int = Depends(current_actor_id)):
+    return op_service.notification_mark_read(
+        actor_id=actor_id, notification_id=notification_id
+    )
 
 
-def notifications_read_all(user_id: int = Depends(current_user_id)):
-    _unavailable()
+def notifications_read_all(actor_id: int = Depends(current_actor_id)):
+    return op_service.notifications_mark_all_read(actor_id=actor_id)
 
 
 def list_saved_views(user_id: int = Depends(current_user_id)):
@@ -211,8 +264,9 @@ def delete_saved_view(view_id: str, user_id: int = Depends(current_user_id)):
 def send_outreach(
     payload: dict[str, Any] = Body(...),
     user_id: int = Depends(current_user_id),
+    actor_id: int = Depends(current_actor_id),
 ):
-    return op_service.send_outreach(user_id=user_id, payload=payload)
+    return op_service.send_outreach(user_id=user_id, actor_id=actor_id, payload=payload)
 
 
 def search(request: Request, user_id: int = Depends(current_user_id)):
@@ -226,6 +280,10 @@ def search(request: Request, user_id: int = Depends(current_user_id)):
 
 def radar_status(user_id: int = Depends(current_user_id)):
     return radar_service.radar_status(user_id=user_id)
+
+
+def list_radar_runs(user_id: int = Depends(current_user_id)):
+    return radar_service.list_radar_runs(user_id=user_id)
 
 
 def trigger_radar_run(

@@ -44,8 +44,8 @@ export default function OpportunityXPage() {
             >
               Open OpportunityPedia
             </LinkButton>
-            <LinkButton to="/contact" variant="inverse-outline" size="lg">
-              Request access
+            <LinkButton to="/get-started" variant="inverse-outline" size="lg">
+              Start free plan
             </LinkButton>
           </>
         }
@@ -98,8 +98,8 @@ export default function OpportunityXPage() {
               finds opportunities today and we will follow up directly.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <LinkButton to="/contact" size="lg">
-                Request access
+              <LinkButton to="/get-started" size="lg">
+                Start free plan
               </LinkButton>
               <LinkButton to="/company" variant="secondary" size="lg">
                 About OpportunityX

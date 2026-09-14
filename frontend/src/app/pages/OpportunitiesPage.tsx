@@ -136,13 +136,15 @@ export function OpportunitiesPage() {
               currentUserId={user.id}
               isLoading={openings.isLoading}
               isError={openings.isError}
+              assigningId={assign.isPending ? assign.variables?.opportunityId : null}
               onRetry={() => void openings.refetch()}
               sort={sort as SortState<OpportunitySortKey>}
               onSortChange={setSort}
               activeRowKey={openId ?? null}
               onRowClick={(opportunity) => openOpportunity(opportunity.id)}
-              onAssign={(opportunity) => assign.mutate(opportunity.id)}
-              onSendOutreach={(opportunity) => openOpportunity(opportunity.id)}
+              onAssign={(opportunity, assignee) =>
+                assign.mutate({ opportunityId: opportunity.id, assignee })
+              }
               emptyState={
                 <EmptyState
                   icon={<Radar />}
@@ -167,12 +169,17 @@ export function OpportunitiesPage() {
           <>
             <CompanyOpportunityTable
               rows={companyRows}
+              currentUserId={user.id}
               isLoading={companies.isLoading}
               isError={companies.isError}
+              assigningId={assign.isPending ? assign.variables?.opportunityId : null}
               onRetry={() => void companies.refetch()}
               sort={sort as SortState<CompanySortKey>}
               onSortChange={(next) => setSort(next as SortState<OpportunitySortKey>)}
-              onSendOutreach={startCompanyOutreach}
+              onRowClick={startCompanyOutreach}
+              onAssign={(row, assignee) =>
+                assign.mutate({ opportunityId: `company:${row.companyId}`, assignee })
+              }
               emptyState={
                 isFilterEmpty({ ...filters, type: undefined, companyId: undefined }) ? (
                   <EmptyState

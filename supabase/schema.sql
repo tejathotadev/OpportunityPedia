@@ -1,5 +1,7 @@
 -- OpportunityPedia v1 platform schema (Supabase Postgres)
--- Run once in: Supabase → SQL Editor → New query → Run
+-- Fresh installs: run this file once in Supabase SQL Editor, then
+--   python -m app.db.migrate --stamp
+-- Existing installs: python -m app.db.migrate  (applies supabase/migrations/)
 -- Do NOT enable these tables for the anon key / browser. FastAPI only.
 
 create extension if not exists citext;
@@ -16,7 +18,18 @@ create table if not exists public.users (
   company           text,
   password_hash     text,
   status            text not null default 'pending',
+  plan              text not null default 'free'
+                      check (plan in ('free', 'paid')),
+  gov_api_key       text,
   is_demo           boolean not null default false,
+  -- Soft-remove + 2-day purge for trial accounts
+  removed_at        timestamptz,
+  -- Workspace seats: owner workspace_id = id; members point at the owner id
+  workspace_id      bigint references public.users (id) on delete set null,
+  seat_role         text not null default 'owner'
+                      check (seat_role in ('owner', 'member')),
+  -- Bumped on each login; JWT claim `sv` must match (one device)
+  session_version   integer not null default 1,
   last_login_at     timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
@@ -29,6 +42,16 @@ create unique index if not exists uq_users_one_demo
 
 create index if not exists ix_users_role_created
   on public.users (role, created_at desc);
+
+create index if not exists ix_users_workspace_id
+  on public.users (workspace_id);
+
+create index if not exists ix_users_removed_at
+  on public.users (removed_at)
+  where removed_at is not null;
+
+create index if not exists ix_users_workspace_seat
+  on public.users (workspace_id, seat_role);
 
 -- ---------------------------------------------------------------------------
 -- contact_leads: marketing contact form (not product accounts)
@@ -234,6 +257,118 @@ create table if not exists public.opportunity_assignments (
 create index if not exists ix_opportunity_assignments_user
   on public.opportunity_assignments (user_id, assigned_at desc);
 
+-- ---------------------------------------------------------------------------
+-- naics_codes: global catalog (Sector 56 now; add more sectors later)
+-- user_naics_codes: admin-assigned coverage per workspace
+-- ---------------------------------------------------------------------------
+create table if not exists public.naics_codes (
+  code          text primary key,
+  title         text not null,
+  sector_code   text not null,
+  sector_title  text not null,
+  group_code    text not null,
+  group_title   text not null,
+  is_active     boolean not null default true,
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists ix_naics_codes_sector
+  on public.naics_codes (sector_code, group_code, code);
+
+create table if not exists public.user_naics_codes (
+  user_id     bigint not null references public.users (id) on delete cascade,
+  naics_code  text not null references public.naics_codes (code) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (user_id, naics_code)
+);
+
+-- ---------------------------------------------------------------------------
+-- radar_runs: durable scan history (admin + user audit)
+-- ---------------------------------------------------------------------------
+create table if not exists public.radar_runs (
+  id                bigint generated always as identity primary key,
+  user_id           bigint not null references public.users (id) on delete cascade,
+  memory_run_id     bigint,
+  status            text not null default 'running',
+  boards_run        integer not null default 0,
+  jobs_found        integer not null default 0,
+  new_count         integer not null default 0,
+  notes             text,
+  new_items         jsonb not null default '[]'::jsonb,
+  created_at        timestamptz not null default now(),
+  finished_at       timestamptz
+);
+
+create index if not exists ix_radar_runs_user_created
+  on public.radar_runs (user_id, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- radar_jobs / radar_vendors: live scan snapshots (survive API restart)
+-- ---------------------------------------------------------------------------
+create table if not exists public.radar_jobs (
+  id                bigint generated always as identity primary key,
+  user_id           bigint not null references public.users (id) on delete cascade,
+  run_id            bigint,
+  provider          text not null,
+  board_token       text,
+  board_name        text,
+  external_job_id   text,
+  title             text,
+  location          text,
+  department        text,
+  url               text,
+  posted_at         text,
+  updated_at        text,
+  requisition_id    text,
+  heat              text,
+  signal_type       text,
+  naics             text,
+  category          text,
+  detail            jsonb,
+  created_at        timestamptz not null default now()
+);
+
+create index if not exists ix_radar_jobs_user
+  on public.radar_jobs (user_id);
+
+create index if not exists ix_radar_jobs_user_external
+  on public.radar_jobs (user_id, external_job_id);
+
+create index if not exists ix_radar_jobs_user_provider
+  on public.radar_jobs (user_id, provider);
+
+create table if not exists public.radar_vendors (
+  id                    bigint generated always as identity primary key,
+  user_id               bigint not null references public.users (id) on delete cascade,
+  run_id                bigint,
+  provider              text not null,
+  agency_name           text,
+  agency_token          text,
+  vendor_name           text,
+  vendor_uei            text,
+  cage_code             text,
+  registration_status   text,
+  award_notice_id       text,
+  award_title           text,
+  award_url             text,
+  naics                 text,
+  posted_at             text,
+  heat                  text,
+  signal_type           text,
+  category              text,
+  created_at            timestamptz not null default now()
+);
+
+create index if not exists ix_radar_vendors_user
+  on public.radar_vendors (user_id);
+
+-- ---------------------------------------------------------------------------
+-- schema_migrations: applied versions (also created by python -m app.db.migrate)
+-- ---------------------------------------------------------------------------
+create table if not exists public.schema_migrations (
+  version     text primary key,
+  applied_at  timestamptz not null default now()
+);
 
 -- ---------------------------------------------------------------------------
 -- updated_at helper
@@ -284,3 +419,9 @@ alter table public.company_hiring_signals enable row level security;
 alter table public.outreach_messages enable row level security;
 alter table public.opportunity_activities enable row level security;
 alter table public.opportunity_assignments enable row level security;
+alter table public.naics_codes enable row level security;
+alter table public.user_naics_codes enable row level security;
+alter table public.radar_runs enable row level security;
+alter table public.radar_jobs enable row level security;
+alter table public.radar_vendors enable row level security;
+alter table public.schema_migrations enable row level security;

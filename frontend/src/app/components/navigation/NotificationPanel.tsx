@@ -1,11 +1,13 @@
 import * as Popover from '@radix-ui/react-popover'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, CalendarClock, Flame, UserCheck, Users } from 'lucide-react'
+import { Bell, CalendarClock, Flame, Radar, UserCheck, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { ListSkeleton } from '@/app/components/feedback/States'
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/app/services/notifications'
+import { queryKeys } from '@/app/services/queryKeys'
 import type { AppNotification } from '@/app/types'
+import { useUiStore } from '@/app/store/useUiStore'
 import { cn } from '@/shared/cn'
 import { formatDateTimeFull, formatRelative } from '@/app/utils/date'
 
@@ -25,26 +27,44 @@ const ICON_TONE: Record<AppNotification['type'], string> = {
   system: 'text-ink-muted bg-surface-sunken border-line',
 }
 
+function notificationIcon(item: AppNotification) {
+  if (item.action === 'radar_runs') return Radar
+  return ICONS[item.type]
+}
+
 export function NotificationPanel() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const openRadarRuns = useUiStore((state) => state.openRadarRuns)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: queryKeys.notifications(),
     queryFn: getNotifications,
+    refetchInterval: 60_000,
   })
 
   const readOne = useMutation({
     mutationFn: markNotificationRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications() }),
   })
 
   const readAll = useMutation({
     mutationFn: markAllNotificationsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications() }),
   })
 
   const unread = data?.filter((item) => !item.read).length ?? 0
+
+  function openNotification(item: AppNotification) {
+    if (!item.read) readOne.mutate(item.id)
+    if (item.opportunityId) {
+      navigate(`/app/opportunities/${item.opportunityId}`)
+      return
+    }
+    if (item.action === 'radar_runs') {
+      openRadarRuns({ expandLatest: true })
+    }
+  }
 
   return (
     <Popover.Root>
@@ -90,15 +110,12 @@ export function NotificationPanel() {
             ) : (
               <ul className="divide-y divide-line">
                 {data.map((item) => {
-                  const Icon = ICONS[item.type]
+                  const Icon = notificationIcon(item)
                   return (
                     <li key={item.id}>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (!item.read) readOne.mutate(item.id)
-                          if (item.opportunityId) navigate(`/app/opportunities/${item.opportunityId}`)
-                        }}
+                        onClick={() => openNotification(item)}
                         className={cn(
                           'flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-muted',
                           !item.read && 'bg-signal-50/40',

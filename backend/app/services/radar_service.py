@@ -15,7 +15,7 @@ from app.radar.heat import (
     group_companies_by_heat,
     match_vendors_to_tenders,
 )
-from app.repositories import radar_repository
+from app.repositories import radar_repository, user_repository
 
 logger = logging.getLogger(__name__)
 
@@ -234,10 +234,27 @@ def execute_radar_run(*, user_id: int, run_id: int) -> None:
             jobs_found=0,
             notes=f"{type(exc).__name__}: {exc}"[:500],
         )
+        try:
+            from app.services import notification_service
+
+            notification_service.fan_out_radar_run(
+                workspace_id=user_id,
+                status="failed",
+                new_count=0,
+                new_items=None,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to fan out failed-run notifications for user_id=%s", user_id
+            )
 
 
 def _fetch_and_store(*, user_id: int, run_id: int) -> None:
+    from app.services import naics_service
+
     sources = enabled_sources()
+    user_gov_key = user_repository.get_gov_api_key(user_id)
+    user_naics = naics_service.resolve_query_codes_for_user(user_id)
     all_jobs: list[dict] = []
     all_vendors: list[dict] = []
     notes: list[str] = []
@@ -252,7 +269,13 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
         follow_redirects=True,
     ) as client:
         for source in sources:
-            records, error = fetch_source(source, client)
+            run_source = dict(source)
+            if str(run_source.get("collector")) == "sam_gov":
+                if user_gov_key:
+                    run_source["api_key"] = user_gov_key
+                if user_naics:
+                    run_source["naics_codes"] = user_naics
+            records, error = fetch_source(run_source, client)
             name = str(source.get("name") or source.get("token"))
             collector = str(source.get("collector"))
             token = str(source.get("token"))
@@ -304,7 +327,18 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
     fetched_ids = {
         str(job["external_job_id"]) for job in all_jobs if job.get("external_job_id")
     }
-    new_count = len(fetched_ids - previous_ids)
+    new_ids = fetched_ids - previous_ids
+    new_count = len(new_ids)
+    new_items = [
+        {
+            "externalJobId": str(job.get("external_job_id")),
+            "title": job.get("title"),
+            "boardName": job.get("board_name") or job.get("agency_name"),
+            "naics": job.get("naics"),
+        }
+        for job in all_jobs
+        if job.get("external_job_id") and str(job.get("external_job_id")) in new_ids
+    ][:50]
 
     run_status = "ok" if boards_ok else "failed"
     radar_repository.update_run(
@@ -314,10 +348,9 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
         jobs_found=len(all_jobs),
         notes="; ".join(notes) if notes else None,
         new_count=new_count,
+        new_items=new_items,
     )
 
-    radar_repository.clear_user_jobs(user_id)
-    radar_repository.clear_user_vendors(user_id)
     job_rows = [
         (
             user_id,
@@ -341,7 +374,35 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
         )
         for job in all_jobs
     ]
-    radar_repository.insert_jobs(job_rows)
+    vendor_rows = [
+        (
+            user_id,
+            run_id,
+            vendor.get("provider") or "sam_gov",
+            vendor.get("agency_name"),
+            vendor.get("board_token"),
+            vendor.get("vendor_name"),
+            vendor.get("vendor_uei"),
+            vendor.get("cage_code"),
+            vendor.get("registration_status"),
+            vendor.get("external_job_id"),
+            vendor.get("award_title") or vendor.get("title"),
+            vendor.get("url"),
+            vendor.get("naics"),
+            vendor.get("posted_at"),
+            vendor.get("heat") or "VERY_HOT",
+            vendor.get("signal_type") or "CONTRACT_AWARD",
+            vendor.get("category"),
+        )
+        for vendor in all_vendors
+        if vendor.get("vendor_name")
+    ]
+    # One transaction: wipe previous snapshot + write the new job/vendor set.
+    radar_repository.replace_user_jobs_and_vendors(
+        user_id=user_id,
+        job_rows=job_rows,
+        vendor_rows=vendor_rows,
+    )
 
     # Persist SAM search detail so drawer facts survive logout / restart.
     try:
@@ -386,30 +447,17 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
             "Failed to persist company_hiring_signals for user_id=%s", user_id
         )
 
-    vendor_rows = [
-        (
-            user_id,
-            run_id,
-            vendor.get("provider") or "sam_gov",
-            vendor.get("agency_name"),
-            vendor.get("board_token"),
-            vendor.get("vendor_name"),
-            vendor.get("vendor_uei"),
-            vendor.get("cage_code"),
-            vendor.get("registration_status"),
-            vendor.get("external_job_id"),
-            vendor.get("award_title") or vendor.get("title"),
-            vendor.get("url"),
-            vendor.get("naics"),
-            vendor.get("posted_at"),
-            vendor.get("heat") or "VERY_HOT",
-            vendor.get("signal_type") or "CONTRACT_AWARD",
-            vendor.get("category"),
+    try:
+        from app.services import notification_service
+
+        notification_service.fan_out_radar_run(
+            workspace_id=user_id,
+            status=run_status,
+            new_count=new_count,
+            new_items=new_items,
         )
-        for vendor in all_vendors
-        if vendor.get("vendor_name")
-    ]
-    radar_repository.insert_vendors(vendor_rows)
+    except Exception:
+        logger.exception("Failed to fan out radar notifications for user_id=%s", user_id)
 
 
 def latest_results(*, user_id: int) -> dict:
@@ -461,3 +509,37 @@ def latest_results(*, user_id: int) -> dict:
             }
         )
     return _results_payload(run=run_payload, jobs=job_payloads, vendors=vendor_payloads)
+
+
+def list_radar_runs(*, user_id: int, limit: int = 50) -> dict:
+    """Durable run history for the customer or platform admin."""
+    from app.repositories import radar_history_repository
+
+    rows = radar_history_repository.list_for_user(user_id=user_id, limit=limit)
+    runs = []
+    # Present oldest→newest numbering for support answers ("1st run", "2nd run").
+    chronological = list(reversed(rows))
+    for index, row in enumerate(chronological, start=1):
+        items = row.get("new_items") or []
+        if isinstance(items, str):
+            import json
+
+            try:
+                items = json.loads(items)
+            except Exception:
+                items = []
+        runs.append(
+            {
+                "id": row["id"],
+                "runNumber": index,
+                "status": row["status"],
+                "boardsRun": row["boards_run"],
+                "jobsFound": row["jobs_found"],
+                "newCount": row["new_count"],
+                "createdAt": _iso_utc(_as_utc(row.get("created_at"))),
+                "finishedAt": _iso_utc(_as_utc(row.get("finished_at"))),
+                "newItems": items if isinstance(items, list) else [],
+            }
+        )
+    runs.reverse()  # newest first for UI
+    return {"runs": runs, "count": len(runs)}

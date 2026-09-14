@@ -1,4 +1,4 @@
-"""Platform table names (Supabase Postgres). Radar tables stay deferred."""
+"""Platform table names (Supabase Postgres)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ class Tables:
     outreach_messages = "outreach_messages"
     opportunity_activities = "opportunity_activities"
     opportunity_assignments = "opportunity_assignments"
-    # Deferred / unused until radar is persisted:
+    naics_codes = "naics_codes"
+    user_naics_codes = "user_naics_codes"
     radar_runs = settings.TABLE_RADAR_RUNS
     radar_jobs = settings.TABLE_RADAR_JOBS
     radar_vendors = settings.TABLE_RADAR_VENDORS
+    app_notifications = "app_notifications"

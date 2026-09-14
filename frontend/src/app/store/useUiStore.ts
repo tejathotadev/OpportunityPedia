@@ -16,6 +16,16 @@ interface UiState {
   searchOpen: boolean
   setSearchOpen: (open: boolean) => void
 
+  radarRunsOpen: boolean
+  setRadarRunsOpen: (open: boolean) => void
+  /** When true, Radar runs drawer expands the newest run (e.g. from toast). */
+  radarRunsExpandLatest: boolean
+  openRadarRuns: (options?: { expandLatest?: boolean }) => void
+
+  supportOpen: boolean
+  setSupportOpen: (open: boolean) => void
+  openSupport: () => void
+
   recentSearches: string[]
   addRecentSearch: (term: string) => void
   clearRecentSearches: () => void
@@ -33,6 +43,23 @@ export const useUiStore = create<UiState>()(
 
       searchOpen: false,
       setSearchOpen: (searchOpen) => set({ searchOpen }),
+
+      radarRunsOpen: false,
+      setRadarRunsOpen: (radarRunsOpen) =>
+        set({
+          radarRunsOpen,
+          ...(radarRunsOpen ? {} : { radarRunsExpandLatest: false }),
+        }),
+      radarRunsExpandLatest: false,
+      openRadarRuns: (options) =>
+        set({
+          radarRunsOpen: true,
+          radarRunsExpandLatest: Boolean(options?.expandLatest),
+        }),
+
+      supportOpen: false,
+      setSupportOpen: (supportOpen) => set({ supportOpen }),
+      openSupport: () => set({ supportOpen: true }),
 
       recentSearches: [],
       addRecentSearch: (term) =>

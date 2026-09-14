@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { ActivityFeed } from '@/app/components/activity/ActivityFeed'
-import { UserAvatar } from '@/app/components/common/Avatar'
 import {
   MultiSelectFilter,
   SingleSelectFilter,
@@ -16,11 +15,8 @@ import { Panel, PanelHeader } from '@/app/components/layout/Panel'
 import { activityTypeLabel } from '@/app/constants/opportunity'
 import { useCurrentUser } from '@/app/providers/currentUserContext'
 import { getTeamActivity } from '@/app/services/activity'
-import { getTeamOwnership } from '@/app/services/assignments'
-import { getAllOpportunities } from '@/app/services/opportunities'
 import { queryKeys } from '@/app/services/queryKeys'
 import type { ActivityType } from '@/app/types'
-import { cn } from '@/shared/cn'
 
 const ACTIVITY_FILTERS: ActivityType[] = [
   'assigned',
@@ -55,14 +51,6 @@ export function TeamActivityPage() {
     queryKey: queryKeys.teamActivity(query),
     queryFn: () => getTeamActivity(query),
   })
-  const ownership = useQuery({
-    queryKey: queryKeys.teamOwnership(),
-    queryFn: () => getTeamOwnership(),
-  })
-  const opportunities = useQuery({
-    queryKey: queryKeys.allOpportunities(),
-    queryFn: getAllOpportunities,
-  })
 
   const teamOptions = useMemo<FilterOption<string>[]>(
     () => [
@@ -76,80 +64,21 @@ export function TeamActivityPage() {
   )
 
   const entries = activity.data ?? []
+  const hasFilters = Boolean(actorId || types.length > 0 || withinDays)
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Team Activity"
-        subtitle="See ownership and outreach activity across your team."
+        subtitle="Assignments and outreach across your workspace."
       />
 
       <Panel flush>
         <PanelHeader
-          title="Team ownership"
-          description="Who is holding what, so nobody contacts the same company twice"
+          title="Activity feed"
+          description="Recent ownership and outreach actions from your team"
         />
-        <div className="scrollbar-thin overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead className="bg-surface-muted">
-              <tr className="border-b border-line">
-                {['User', 'Assigned', 'Needs Outreach', 'Contacted Today', 'Follow-ups'].map(
-                  (header, index) => (
-                    <th
-                      key={header}
-                      scope="col"
-                      className={cn(
-                        'px-4 py-2.5 text-[11.5px] font-semibold tracking-[0.04em] text-ink-muted uppercase',
-                        index > 0 && 'text-right',
-                      )}
-                    >
-                      {header}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {(ownership.data ?? []).map((row) => (
-                <tr key={row.user.id} className="bg-surface">
-                  <td className="px-4 py-2.5">
-                    <span className="flex items-center gap-2.5">
-                      <UserAvatar name={row.user.name} tone={row.user.avatarTone} size="sm" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13.5px] font-medium text-ink">
-                          {row.user.id === user.id ? `${row.user.name} (you)` : row.user.name}
-                        </span>
-                        <span className="block truncate text-[12px] text-ink-muted">
-                          {row.user.jobTitle}
-                        </span>
-                      </span>
-                    </span>
-                  </td>
-                  <td className="nums px-4 py-2.5 text-right text-[13.5px] text-ink">
-                    {row.assigned}
-                  </td>
-                  <td
-                    className={cn(
-                      'nums px-4 py-2.5 text-right text-[13.5px]',
-                      row.needsOutreach > 0 ? 'text-hot-strong' : 'text-ink',
-                    )}
-                  >
-                    {row.needsOutreach}
-                  </td>
-                  <td className="nums px-4 py-2.5 text-right text-[13.5px] text-ink">
-                    {row.contactedToday}
-                  </td>
-                  <td className="nums px-4 py-2.5 text-right text-[13.5px] text-ink">
-                    {row.followUps}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
 
-      <Panel flush>
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
           <SingleSelectFilter
             label="Team member"
@@ -171,7 +100,7 @@ export function TeamActivityPage() {
             anyValue="any"
             onChange={(next) => setWithinDays(next ? Number(next) : undefined)}
           />
-          {(actorId || types.length > 0 || withinDays) && (
+          {hasFilters && (
             <button
               type="button"
               onClick={() => {
@@ -191,12 +120,30 @@ export function TeamActivityPage() {
         ) : entries.length === 0 ? (
           <EmptyState
             icon={<Activity />}
-            title="No team activity yet."
-            description="Assignments and outreach will appear here as your team works."
-            action={{ label: 'Browse opportunities', onClick: () => navigate('/app/opportunities') }}
+            title={hasFilters ? 'No activity matches these filters.' : 'No team activity yet.'}
+            description={
+              hasFilters
+                ? 'Try clearing filters or widening the date range.'
+                : 'Assignments and outreach will appear here as your team works.'
+            }
+            action={
+              hasFilters
+                ? {
+                    label: 'Clear filters',
+                    onClick: () => {
+                      setActorId(undefined)
+                      setTypes([])
+                      setWithinDays(undefined)
+                    },
+                  }
+                : {
+                    label: 'Browse opportunities',
+                    onClick: () => navigate('/app/opportunities'),
+                  }
+            }
           />
         ) : (
-          <ActivityFeed entries={entries} opportunities={opportunities.data ?? []} />
+          <ActivityFeed entries={entries} />
         )}
       </Panel>
     </div>

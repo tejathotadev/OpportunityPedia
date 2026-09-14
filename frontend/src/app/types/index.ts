@@ -129,6 +129,8 @@ export interface OpportunityActivity {
   detail?: string
   createdAt: IsoDateTime
   channel?: OutreachChannel
+  /** Stored on the activity row — avoids loading a full opportunity list. */
+  opportunityTitle?: string | null
 }
 
 export interface Outreach {
@@ -269,6 +271,8 @@ export interface AppNotification {
   createdAt: IsoDateTime
   read: boolean
   opportunityId?: string
+  /** Client action when there is no opportunity deep link (e.g. radar_runs). */
+  action?: string | null
 }
 
 export interface OpportunityFilters {
@@ -304,6 +308,13 @@ export interface OpportunityCompanyRow {
   types: string[]
   /** Top teams / departments derived from openings (not shown as a job list). */
   teamBreakdown?: OpportunityTeamBucket[]
+  /** Same ownership fields as government rows (`company:{id}` assignment key). */
+  assignedToId?: string | null
+  assignedToName?: string | null
+  assignedAt?: string | null
+  outreachStatus?: OutreachStatus
+  lastContactedAt?: string | null
+  lastContactedByName?: string | null
 }
 
 export type SortDirection = 'asc' | 'desc'

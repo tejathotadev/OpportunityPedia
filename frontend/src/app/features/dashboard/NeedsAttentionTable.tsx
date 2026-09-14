@@ -1,25 +1,26 @@
-import { CheckCircle2, Send, TrendingUp, UserPlus } from 'lucide-react'
+import { CheckCircle2, TrendingUp } from 'lucide-react'
 
 import { TemperatureMark } from '@/app/components/badges/TemperatureBadge'
-import { OwnerAvatar } from '@/app/components/common/Avatar'
-import { Button } from '@/app/components/common/Button'
+import { AssignCell } from '@/app/components/common/AssignCell'
 import { EmptyState } from '@/app/components/feedback/States'
 import { DataTable, type DataTableColumn } from '@/app/components/tables/DataTable'
 import { TEMPERATURE_META } from '@/app/constants/opportunity'
-import type { AttentionRow, Opportunity } from '@/app/types'
+import { useCurrentUser } from '@/app/providers/currentUserContext'
+import type { AttentionRow, Opportunity, User } from '@/app/types'
 import { cn } from '@/shared/cn'
 import { formatDate, formatDayMonth, formatRelative, getDeadlineUrgency } from '@/app/utils/date'
-import { canSendOutreach, getAttentionReason } from '@/app/utils/opportunity'
+import { getAttentionReason } from '@/app/utils/opportunity'
 
 interface NeedsAttentionTableProps {
   rows: AttentionRow[]
   currentUserId: string
   isLoading?: boolean
   isError?: boolean
+  /** Opportunity id currently being assigned — only that row shows a spinner. */
+  assigningId?: string | null
   onRetry?: () => void
   onOpen: (opportunity: Opportunity) => void
-  onAssign: (opportunity: Opportunity) => void
-  onSendOutreach: (opportunity: Opportunity) => void
+  onAssign: (opportunity: Opportunity, assignee: User) => void
 }
 
 const REASON_TONE = {
@@ -40,16 +41,18 @@ export function NeedsAttentionTable({
   currentUserId,
   isLoading,
   isError,
+  assigningId,
   onRetry,
   onOpen,
   onAssign,
-  onSendOutreach,
 }: NeedsAttentionTableProps) {
+  const { team } = useCurrentUser()
+
   const columns: DataTableColumn<AttentionRow>[] = [
     {
       key: 'title',
       header: 'Opportunity',
-      width: 'w-[36%]',
+      width: 'w-[40%]',
       cellClassName: 'pl-5',
       render: (row) =>
         isCompany(row) ? (
@@ -130,47 +133,20 @@ export function NeedsAttentionTable({
       },
     },
     {
-      key: 'owner',
-      header: 'Owner',
+      key: 'assign',
+      header: 'Assign',
       hideBelow: 'md',
-      width: 'w-[124px]',
-      render: (row) => (
-        <OwnerAvatar name={row.assignedToId === currentUserId ? 'You' : row.assignedToName} />
-      ),
-    },
-    {
-      key: 'action',
-      header: <span className="sr-only">Action</span>,
-      align: 'right',
-      width: 'w-[144px]',
+      width: 'w-[148px]',
       cellClassName: 'pr-5',
       render: (row) => (
-        <div
-          className="flex justify-end"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-          role="presentation"
-        >
-          {!row.assignedToId ? (
-            <Button size="sm" variant="secondary" iconLeft={<UserPlus />} onClick={() => onAssign(row)}>
-              Assign to me
-            </Button>
-          ) : row.assignedToId === currentUserId && row.outreachStatus === 'not_contacted' ? (
-            <Button
-              size="sm"
-              variant="primary"
-              iconLeft={<Send />}
-              disabled={!canSendOutreach(row)}
-              onClick={() => onSendOutreach(row)}
-            >
-              Send Outreach
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" onClick={() => onOpen(row)}>
-              Review
-            </Button>
-          )}
-        </div>
+        <AssignCell
+          assignedToId={row.assignedToId}
+          assignedToName={row.assignedToName}
+          currentUserId={currentUserId}
+          team={team}
+          isAssigning={assigningId === row.id}
+          onAssign={(assignee) => onAssign(row, assignee)}
+        />
       ),
     },
   ]
@@ -225,6 +201,16 @@ export function NeedsAttentionTable({
                 </p>
               )
             )}
+            <div className="pt-0.5">
+              <AssignCell
+                assignedToId={row.assignedToId}
+                assignedToName={row.assignedToName}
+                currentUserId={currentUserId}
+                team={team}
+                isAssigning={assigningId === row.id}
+                onAssign={(assignee) => onAssign(row, assignee)}
+              />
+            </div>
           </div>
         )
       }}

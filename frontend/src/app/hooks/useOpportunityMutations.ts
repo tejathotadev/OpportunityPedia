@@ -9,7 +9,8 @@ import {
 import { sendOutreach } from '@/app/services/outreach'
 import { INVALIDATE_ON_MUTATION } from '@/app/services/queryKeys'
 import { toast } from '@/app/store/useToastStore'
-import type { SendOutreachPayload } from '@/app/types'
+import type { DashboardOverview } from '@/app/services/dashboard'
+import type { AttentionRow, SendOutreachPayload, User } from '@/app/types'
 
 /**
  * Shared write operations. Every mutation refreshes the same key families so
@@ -25,13 +26,68 @@ export function useOpportunityMutations() {
     }
   }
 
+  const patchOverviewOwner = (opportunityId: string, assignee: User | null) => {
+    queryClient.setQueriesData<DashboardOverview>(
+      { queryKey: ['dashboard', 'overview'] },
+      (current) => {
+        if (!current?.needsAttention?.items) return current
+        return {
+          ...current,
+          needsAttention: {
+            ...current.needsAttention,
+            items: current.needsAttention.items.map((row: AttentionRow) =>
+              row.id === opportunityId
+                ? {
+                    ...row,
+                    assignedToId: assignee?.id ?? null,
+                    assignedToName: assignee
+                      ? assignee.id === user.id
+                        ? 'You'
+                        : assignee.name
+                      : null,
+                  }
+                : row,
+            ),
+          },
+        }
+      },
+    )
+  }
+
   const assign = useMutation({
-    mutationFn: (opportunityId: string) => assignOpportunity(opportunityId, user),
-    onSuccess: () => {
-      refresh()
-      toast.success('Opportunity assigned to you.')
+    mutationFn: ({
+      opportunityId,
+      assignee,
+    }: {
+      opportunityId: string
+      assignee?: User
+    }) => {
+      const target = assignee ?? user
+      return target.id === user.id
+        ? assignOpportunity(opportunityId, user)
+        : reassignOpportunity(opportunityId, target.id)
     },
-    onError: () => toast.error('The assignment couldn’t be saved. Please try again.'),
+    onMutate: async ({ opportunityId, assignee }) => {
+      await queryClient.cancelQueries({ queryKey: ['dashboard'] })
+      patchOverviewOwner(opportunityId, assignee ?? user)
+    },
+    onSuccess: (_data, variables) => {
+      refresh()
+      const name =
+        !variables.assignee || variables.assignee.id === user.id
+          ? 'you'
+          : variables.assignee.name
+      toast.success(
+        name === 'you'
+          ? 'Opportunity assigned to you.'
+          : `Opportunity assigned to ${name}.`,
+      )
+    },
+    onError: (_err, variables) => {
+      patchOverviewOwner(variables.opportunityId, null)
+      refresh()
+      toast.error('The assignment couldn’t be saved. Please try again.')
+    },
   })
 
   const reassign = useMutation({

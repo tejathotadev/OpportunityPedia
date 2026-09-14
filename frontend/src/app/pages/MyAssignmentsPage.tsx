@@ -138,10 +138,8 @@ export function MyAssignmentsPage() {
             'outreachStatus',
             'nextAction',
             'deadline',
-            'actions',
           ]}
           onRowClick={(opportunity) => setSelectedId(opportunity.id)}
-          onSendOutreach={(opportunity) => setSelectedId(opportunity.id)}
           emptyState={
             all.length === 0 ? (
               <EmptyState

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/app/components/common/Button'
@@ -6,6 +6,7 @@ import { ApiError } from '@/app/services/api'
 import { loginAdmin } from '@/app/services/auth'
 import { useAuthStore } from '@/app/store/useAuthStore'
 import { toast } from '@/app/store/useToastStore'
+import { consumeSignedInElsewhere } from '@/app/utils/authRedirect'
 
 /**
  * Hidden admin entry — `/admin/login`. Intentionally not linked from the
@@ -20,6 +21,12 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (consumeSignedInElsewhere()) {
+      toast.info('Signed in elsewhere', 'Your session ended because you signed in on another device.')
+    }
+  }, [])
 
   if (admin?.token) {
     return <Navigate to="/admin/users" replace />

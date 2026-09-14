@@ -41,38 +41,52 @@ def upsert(
     opportunity_id: str,
     assigned_to_id: int,
     assigned_to_name: str,
+    conn=None,
 ) -> dict[str, Any]:
-    with connect_database() as conn:
+    def _run(cur) -> dict[str, Any]:
+        _ensure_table(cur)
+        cur.execute(
+            f"""
+            INSERT INTO {Tables.opportunity_assignments}
+                (user_id, opportunity_id, assigned_to_id, assigned_to_name)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, opportunity_id) DO UPDATE SET
+                assigned_to_id = EXCLUDED.assigned_to_id,
+                assigned_to_name = EXCLUDED.assigned_to_name,
+                assigned_at = now()
+            RETURNING opportunity_id, assigned_to_id, assigned_to_name, assigned_at
+            """,
+            (user_id, opportunity_id, assigned_to_id, assigned_to_name.strip()),
+        )
+        row = cur.fetchone()
+        return _map(row)
+
+    if conn is not None:
         with conn.cursor() as cur:
-            _ensure_table(cur)
-            cur.execute(
-                f"""
-                INSERT INTO {Tables.opportunity_assignments}
-                    (user_id, opportunity_id, assigned_to_id, assigned_to_name)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (user_id, opportunity_id) DO UPDATE SET
-                    assigned_to_id = EXCLUDED.assigned_to_id,
-                    assigned_to_name = EXCLUDED.assigned_to_name,
-                    assigned_at = now()
-                RETURNING opportunity_id, assigned_to_id, assigned_to_name, assigned_at
-                """,
-                (user_id, opportunity_id, assigned_to_id, assigned_to_name.strip()),
-            )
-            row = cur.fetchone()
-    return _map(row)
+            return _run(cur)
+    with connect_database() as owned:
+        with owned.cursor() as cur:
+            return _run(cur)
 
 
-def delete(*, user_id: int, opportunity_id: str) -> None:
-    with connect_database() as conn:
+def delete(*, user_id: int, opportunity_id: str, conn=None) -> None:
+    def _run(cur) -> None:
+        _ensure_table(cur)
+        cur.execute(
+            f"""
+            DELETE FROM {Tables.opportunity_assignments}
+            WHERE user_id = %s AND opportunity_id = %s
+            """,
+            (user_id, opportunity_id),
+        )
+
+    if conn is not None:
         with conn.cursor() as cur:
-            _ensure_table(cur)
-            cur.execute(
-                f"""
-                DELETE FROM {Tables.opportunity_assignments}
-                WHERE user_id = %s AND opportunity_id = %s
-                """,
-                (user_id, opportunity_id),
-            )
+            _run(cur)
+        return
+    with connect_database() as owned:
+        with owned.cursor() as cur:
+            _run(cur)
 
 
 def get(*, user_id: int, opportunity_id: str) -> dict[str, Any] | None:

@@ -15,16 +15,27 @@ def require_admin(token: str = Depends(bearer_token)) -> dict:
 
 
 def require_customer(token: str = Depends(bearer_token)) -> dict:
+    """Authenticated customer actor (includes workspace_id + seat_role)."""
     return auth_service.current_customer(token)
 
 
 def current_user_id(authorization: str | None = Header(default=None)) -> int:
-    """Customer id for the OP read API.
+    """Workspace owner id for OP/Radar data scoping.
 
-    OP has no sign-in screen yet, so `OP_PUBLIC_USER_ID` lets a local dev build
-    read one account's radar data without a token. Leave it at 0 anywhere the
-    API is reachable off localhost.
+    Teammates authenticate as themselves but read/write workspace data under
+    the owner's id. Leave `OP_PUBLIC_USER_ID` at 0 off localhost.
     """
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        customer = auth_service.current_customer(token)
+        return int(customer.get("workspace_id") or customer["id"])
+    if settings.OP_PUBLIC_USER_ID:
+        return int(settings.OP_PUBLIC_USER_ID)
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+
+
+def current_actor_id(authorization: str | None = Header(default=None)) -> int:
+    """Logged-in person's user id (owner or teammate), for assign-to-me etc."""
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
         return int(auth_service.current_customer(token)["id"])

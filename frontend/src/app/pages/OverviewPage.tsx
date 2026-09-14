@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Clock, Flame, Radar, RotateCw, ThermometerSun, UserCheck } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { ActivityFeed } from '@/app/components/activity/ActivityFeed'
@@ -37,15 +37,9 @@ import { useRadarCooldown } from '@/app/hooks/useRadarCooldown'
 import { useCurrentUser } from '@/app/providers/currentUserContext'
 import { ApiError } from '@/app/services/api'
 import { getTeamActivity } from '@/app/services/activity'
-import {
-  getDashboardMetrics,
-  getNeedsAttention,
-  getPipelineSummary,
-  getUpcomingDeadlines,
-} from '@/app/services/dashboard'
-import { getAllOpportunities } from '@/app/services/opportunities'
+import { getDashboardOverview } from '@/app/services/dashboard'
 import { triggerRadarRun } from '@/app/services/radar'
-import { INVALIDATE_ON_MUTATION, queryKeys } from '@/app/services/queryKeys'
+import { queryKeys } from '@/app/services/queryKeys'
 import { toast } from '@/app/store/useToastStore'
 import { firstNameOf } from '@/app/utils/format'
 import { cn } from '@/shared/cn'
@@ -69,7 +63,6 @@ function greeting(date = new Date()): string {
 
 export function OverviewPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { user } = useCurrentUser()
   const { assign } = useOpportunityMutations()
   const {
@@ -78,7 +71,6 @@ export function OverviewPage() {
     hasCountdown,
     reason,
     isRunning,
-    status: radarStatus,
     applyStatus,
     refreshStatus,
   } = useRadarCooldown()
@@ -106,22 +98,14 @@ export function OverviewPage() {
     return query ? `${path}${path.includes('?') ? '&' : '?'}${query}` : path
   }
 
-  const metrics = useQuery({
-    queryKey: queryKeys.dashboardMetrics(category, range, country),
-    queryFn: () => getDashboardMetrics(scope),
+  const overview = useQuery({
+    queryKey: queryKeys.dashboardOverview(category, range, country),
+    queryFn: () => getDashboardOverview(scope, { attentionLimit: 8, deadlinesLimit: 5 }),
   })
-  const pipeline = useQuery({
-    queryKey: queryKeys.pipeline(),
-    queryFn: () => getPipelineSummary(),
-  })
-  const attention = useQuery({
-    queryKey: queryKeys.needsAttention(category, range, country),
-    queryFn: () => getNeedsAttention(8, scope),
-  })
-  const deadlines = useQuery({
-    queryKey: queryKeys.deadlines(),
-    queryFn: () => getUpcomingDeadlines(5),
-  })
+  const metrics = overview.data?.metrics
+  const pipeline = overview.data?.pipeline
+  const attentionItems = overview.data?.needsAttention.items
+  const deadlineItems = overview.data?.deadlines.items
   // The dashboard feed is about people, so system scoring events are excluded.
   const activityQuery = {
     type: ['assigned', 'reassigned', 'unassigned', 'contacted', 'replied', 'follow_up'] as const,
@@ -130,10 +114,6 @@ export function OverviewPage() {
   const activity = useQuery({
     queryKey: queryKeys.teamActivity(activityQuery),
     queryFn: () => getTeamActivity({ type: [...activityQuery.type], limit: activityQuery.limit }),
-  })
-  const allOpportunities = useQuery({
-    queryKey: queryKeys.allOpportunities(),
-    queryFn: getAllOpportunities,
   })
 
   /**
@@ -167,48 +147,6 @@ export function OverviewPage() {
       setScanning(false)
     }
   }
-
-  /**
-   * Reports a scan the moment it stops running, whoever started it.
-   *
-   * The run happens server-side with no way to push its result back, so the
-   * transition out of `running` observed by polling is what stands in for a
-   * completion callback. Tracked in a ref so a later status change cannot
-   * announce the same run twice.
-   */
-  const wasRunning = useRef(false)
-  useEffect(() => {
-    if (wasRunning.current && !isRunning) {
-      void (async () => {
-        await Promise.all(
-          INVALIDATE_ON_MUTATION.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-        )
-        if (radarStatus?.lastRunStatus === 'failed') {
-          toast.error('Radar scan failed', 'No sources answered. Try again in a moment.')
-          return
-        }
-        // A scan that returns the same notices is a useful answer, not a
-        // failure, so the two outcomes get different copy.
-        const added = radarStatus?.newCount ?? 0
-        const found = radarStatus?.jobsFound ?? 0
-        if (added > 0) {
-          toast.success(
-            'Data updated',
-            `${added} new ${added === 1 ? 'opportunity' : 'opportunities'} · newest listed first`,
-            { label: 'View', onClick: () => navigate('/app/opportunities') },
-          )
-        } else {
-          toast.info(
-            'Already up to date',
-            found > 0
-              ? `Nothing new since the last scan · ${found} tracked`
-              : 'No opportunities matched your sources.',
-          )
-        }
-      })()
-    }
-    wasRunning.current = isRunning
-  }, [isRunning, radarStatus, queryClient, navigate])
 
   return (
     <div className="space-y-5">
@@ -311,7 +249,7 @@ export function OverviewPage() {
           a dash reads as "unavailable" where a zero would read as a real
           count. */}
       <section aria-label="Key metrics">
-        {metrics.isLoading ? (
+        {overview.isLoading ? (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <CardSkeleton key={index} />
@@ -319,7 +257,7 @@ export function OverviewPage() {
           </div>
         ) : (
           <>
-            {metrics.isError && (
+            {overview.isError && (
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger-line bg-danger-soft px-3 py-2">
                 <p className="text-[13px] font-medium text-danger">
                   We couldn’t load these metrics.
@@ -328,7 +266,7 @@ export function OverviewPage() {
                   variant="secondary"
                   size="sm"
                   iconLeft={<RotateCw />}
-                  onClick={() => void metrics.refetch()}
+                  onClick={() => void overview.refetch()}
                 >
                   Try again
                 </Button>
@@ -337,10 +275,10 @@ export function OverviewPage() {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard
                 label="Total Opportunities"
-                value={metrics.data?.totalOpportunities ?? '—'}
+                value={metrics?.totalOpportunities ?? '—'}
                 context={
-                  metrics.data && showWeeklyDelta
-                    ? `+${metrics.data.opportunitiesAddedThisWeek} this week`
+                  metrics && showWeeklyDelta
+                    ? `+${metrics.opportunitiesAddedThisWeek} this week`
                     : undefined
                 }
                 icon={Radar}
@@ -348,9 +286,9 @@ export function OverviewPage() {
               />
               <StatCard
                 label="Very Hot"
-                value={metrics.data?.veryHot ?? '—'}
+                value={metrics?.veryHot ?? '—'}
                 context={
-                  metrics.data && `${metrics.data.veryHotNeedingAttention} need attention`
+                  metrics && `${metrics.veryHotNeedingAttention} need attention`
                 }
                 contextTone="critical"
                 icon={Flame}
@@ -359,27 +297,25 @@ export function OverviewPage() {
               />
               <StatCard
                 label="Hot"
-                value={metrics.data?.hot ?? '—'}
+                value={metrics?.hot ?? '—'}
                 context={
-                  metrics.data
-                    ? `${metrics.data.hotUnassigned} ${
-                        metrics.data.hotUnassigned === 1 ? 'opening' : 'openings'
-                      } across companies`
+                  metrics
+                    ? `${metrics.hot} ${metrics.hot === 1 ? 'company' : 'companies'} with hiring`
                     : undefined
                 }
-                contextTone="warning"
+                contextTone="neutral"
                 icon={ThermometerSun}
                 accent="hot"
                 to={scoped('/app/opportunities?lane=commercial')}
               />
               <StatCard
                 label="Assigned to Me"
-                value={metrics.data?.assignedToMe ?? '—'}
+                value={metrics?.assignedToMe ?? '—'}
                 context={
-                  metrics.data && `${metrics.data.assignedToMeNotContacted} not contacted`
+                  metrics && `${metrics.assignedToMeNotContacted} not contacted`
                 }
                 contextTone={
-                  (metrics.data?.assignedToMeNotContacted ?? 0) > 0 ? 'warning' : 'neutral'
+                  (metrics?.assignedToMeNotContacted ?? 0) > 0 ? 'warning' : 'neutral'
                 }
                 icon={UserCheck}
                 to="/app/my-assignments"
@@ -406,14 +342,16 @@ export function OverviewPage() {
           }
         />
         <NeedsAttentionTable
-          rows={attention.data ?? []}
+          rows={attentionItems ?? []}
           currentUserId={user.id}
-          isLoading={attention.isLoading}
-          isError={attention.isError}
-          onRetry={() => void attention.refetch()}
+          isLoading={overview.isLoading}
+          isError={overview.isError}
+          assigningId={assign.isPending ? assign.variables?.opportunityId : null}
+          onRetry={() => void overview.refetch()}
           onOpen={(opportunity) => setSelectedId(opportunity.id)}
-          onAssign={(opportunity) => assign.mutate(opportunity.id)}
-          onSendOutreach={(opportunity) => setSelectedId(opportunity.id)}
+          onAssign={(opportunity, assignee) =>
+            assign.mutate({ opportunityId: opportunity.id, assignee })
+          }
         />
       </Panel>
 
@@ -442,10 +380,7 @@ export function OverviewPage() {
           ) : (activity.data?.length ?? 0) === 0 ? (
             <EmptyState compact title="No team activity yet." />
           ) : (
-            <ActivityFeed
-              entries={activity.data ?? []}
-              opportunities={allOpportunities.data ?? []}
-            />
+            <ActivityFeed entries={activity.data ?? []} />
           )}
         </Panel>
 
@@ -464,20 +399,20 @@ export function OverviewPage() {
               }
             />
             <MyPipeline
-              summary={pipeline.data}
-              isLoading={pipeline.isLoading}
-              isError={pipeline.isError}
-              onRetry={() => void pipeline.refetch()}
+              summary={pipeline}
+              isLoading={overview.isLoading}
+              isError={overview.isError}
+              onRetry={() => void overview.refetch()}
             />
           </Panel>
 
           <Panel flush>
             <PanelHeader title="Upcoming deadlines" />
             <UpcomingDeadlines
-              rows={deadlines.data ?? []}
-              isLoading={deadlines.isLoading}
-              isError={deadlines.isError}
-              onRetry={() => void deadlines.refetch()}
+              rows={deadlineItems ?? []}
+              isLoading={overview.isLoading}
+              isError={overview.isError}
+              onRetry={() => void overview.refetch()}
               onOpen={(opportunity) => setSelectedId(opportunity.id)}
             />
           </Panel>

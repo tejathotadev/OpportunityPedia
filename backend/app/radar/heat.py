@@ -21,7 +21,7 @@ SIGNAL_ACQUISITION = "ACQUISITION"
 SIGNAL_PROCUREMENT = "PROCUREMENT"
 SIGNAL_GENERAL = "GENERAL"
 
-# NAICS 5613 Employment Services — the only codes the radar tracks.
+# Short labels for common employment codes (Radar UI). Full titles live in naics_codes.
 NAICS_CATEGORIES: dict[str, str] = {
     "561311": "Employment Placement",
     "561312": "Executive Search",
@@ -31,10 +31,21 @@ NAICS_CATEGORIES: dict[str, str] = {
 
 
 def category_for_naics(naics: str | None) -> str | None:
-    """Human-readable staffing category for a six-digit NAICS code."""
+    """Human-readable category for a six-digit NAICS code."""
     if not naics:
         return None
-    return NAICS_CATEGORIES.get(str(naics).strip()[:6])
+    code = str(naics).strip()[:6]
+    if code in NAICS_CATEGORIES:
+        return NAICS_CATEGORIES[code]
+    try:
+        from app.repositories import naics_repository
+
+        title = naics_repository.title_for_code(code)
+        if title:
+            return title
+    except Exception:
+        pass
+    return code
 
 _COLLECTOR_DEFAULTS: dict[str, dict[str, str]] = {
     "greenhouse": {"heat": HEAT_HOT, "signal_type": SIGNAL_JOB_OPENING},

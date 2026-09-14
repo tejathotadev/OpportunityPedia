@@ -65,9 +65,9 @@ export function OwnerAvatar({
   }
 
   return (
-    <span className={cn('inline-flex items-center gap-2 whitespace-nowrap', className)}>
+    <span className={cn('inline-flex min-w-0 max-w-full items-center gap-2', className)}>
       <UserAvatar name={name} tone={tone} size={size} />
-      <span className="truncate text-[13px] text-ink">{name}</span>
+      <span className="min-w-0 truncate text-[13px] text-ink">{name}</span>
     </span>
   )
 }

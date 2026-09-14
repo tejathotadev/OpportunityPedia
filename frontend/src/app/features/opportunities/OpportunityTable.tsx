@@ -1,22 +1,16 @@
-import { MoreHorizontal, Send, UserPlus } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { TemperatureMark } from '@/app/components/badges/TemperatureBadge'
 import { OpportunityTypeBadge, OutreachStatusBadge } from '@/app/components/badges/StatusBadges'
-import { OwnerAvatar } from '@/app/components/common/Avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/app/components/common/DropdownMenu'
+import { AssignCell } from '@/app/components/common/AssignCell'
 import { Tooltip } from '@/app/components/common/Tooltip'
 import { DataTable, type DataTableColumn } from '@/app/components/tables/DataTable'
 import { opportunityDisplayType, TEMPERATURE_META } from '@/app/constants/opportunity'
-import type { Opportunity, SortState } from '@/app/types'
+import { useCurrentUser } from '@/app/providers/currentUserContext'
+import type { Opportunity, SortState, User } from '@/app/types'
 import { cn } from '@/shared/cn'
 import { formatDate, formatDayMonth, formatRelative, getDeadlineUrgency } from '@/app/utils/date'
-import { canSendOutreach, getNextAction, type OpportunitySortKey } from '@/app/utils/opportunity'
+import { getNextAction, type OpportunitySortKey } from '@/app/utils/opportunity'
 
 export type OpportunityColumnKey =
   | 'title'
@@ -29,28 +23,27 @@ export type OpportunityColumnKey =
   | 'lastContactedAt'
   | 'assignedAt'
   | 'nextAction'
-  | 'actions'
 
 const DEFAULT_COLUMNS: OpportunityColumnKey[] = [
   'title',
   'type',
   'detectedAt',
   'deadline',
-  'assignedToName',
   'outreachStatus',
-  'actions',
+  'assignedToName',
 ]
 
 interface OpportunityTableProps {
   rows: Opportunity[]
   onRowClick: (opportunity: Opportunity) => void
-  onAssign?: (opportunity: Opportunity) => void
-  onSendOutreach?: (opportunity: Opportunity) => void
+  onAssign?: (opportunity: Opportunity, assignee: User) => void
   sort?: SortState<OpportunitySortKey>
   onSortChange?: (sort: SortState<OpportunitySortKey>) => void
   columns?: OpportunityColumnKey[]
   isLoading?: boolean
   isError?: boolean
+  /** Opportunity id currently being assigned — only that row shows a spinner. */
+  assigningId?: string | null
   onRetry?: () => void
   emptyState?: ReactNode
   activeRowKey?: string | null
@@ -72,17 +65,19 @@ export function OpportunityTable({
   rows,
   onRowClick,
   onAssign,
-  onSendOutreach,
   sort,
   onSortChange,
   columns = DEFAULT_COLUMNS,
   isLoading,
   isError,
+  assigningId,
   onRetry,
   emptyState,
   activeRowKey,
   currentUserId,
 }: OpportunityTableProps) {
+  const { team } = useCurrentUser()
+
   const definitions: Record<OpportunityColumnKey, DataTableColumn<Opportunity, OpportunitySortKey>> =
     {
       title: {
@@ -138,15 +133,29 @@ export function OpportunityTable({
       },
       assignedToName: {
         key: 'assignedToName',
-        header: 'Owner',
+        header: 'Assign',
         sortable: true,
-        width: 'w-[120px]',
-        render: (row) => (
-          <OwnerAvatar
-            name={row.assignedToId === currentUserId ? 'You' : row.assignedToName}
-            tone={row.assignedToId === currentUserId ? 'teal' : undefined}
-          />
-        ),
+        width: 'w-[148px]',
+        cellClassName: 'pr-5',
+        render: (row) =>
+          onAssign ? (
+            <AssignCell
+              assignedToId={row.assignedToId}
+              assignedToName={row.assignedToName}
+              currentUserId={currentUserId}
+              team={team}
+              isAssigning={assigningId === row.id}
+              onAssign={(assignee) => onAssign(row, assignee)}
+            />
+          ) : (
+            <AssignCell
+              assignedToId={row.assignedToId}
+              assignedToName={row.assignedToName}
+              currentUserId={currentUserId}
+              team={team}
+              onAssign={() => undefined}
+            />
+          ),
       },
       outreachStatus: {
         key: 'outreachStatus',
@@ -221,49 +230,6 @@ export function OpportunityTable({
           )
         },
       },
-      actions: {
-        key: 'actions' as OpportunitySortKey,
-        header: <span className="sr-only">Actions</span>,
-        align: 'right',
-        width: 'w-[48px]',
-        render: (row) => (
-          <div
-            className="flex justify-end"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => event.stopPropagation()}
-            role="presentation"
-          >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`Actions for ${row.title}`}
-                  className="inline-flex size-7 items-center justify-center rounded-md text-ink-muted opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-sunken hover:text-ink focus-visible:opacity-100 data-[state=open]:opacity-100"
-                >
-                  <MoreHorizontal className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onSelect={() => onRowClick(row)}>Open details</DropdownMenuItem>
-                {onAssign && !row.assignedToId && (
-                  <DropdownMenuItem icon={<UserPlus />} onSelect={() => onAssign(row)}>
-                    Assign to me
-                  </DropdownMenuItem>
-                )}
-                {onSendOutreach && (
-                  <DropdownMenuItem
-                    icon={<Send />}
-                    disabled={!canSendOutreach(row)}
-                    onSelect={() => onSendOutreach(row)}
-                  >
-                    Send outreach
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ),
-      },
     }
 
   return (
@@ -285,18 +251,31 @@ export function OpportunityTable({
       renderMobileCard={(row) => (
         <div className="space-y-1.5">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[13.5px] leading-snug font-medium text-ink">{row.title}</p>
+            <p className="min-w-0 truncate text-[13.5px] leading-snug font-medium text-ink">
+              {row.title}
+            </p>
             <OutreachStatusBadge status={row.outreachStatus} />
           </div>
           <p className="text-[12.5px] text-ink-muted">{opportunityDisplayType(row)}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[12px] text-ink-muted">
-            <span>{row.assignedToName ? `Owner: ${row.assignedToName}` : 'Unassigned'}</span>
             {row.deadline && (
               <span className={cn('nums', getDeadlineUrgency(row.deadline)?.className)}>
                 {getDeadlineUrgency(row.deadline)?.label}
               </span>
             )}
           </div>
+          {onAssign && (
+            <div className="pt-0.5">
+              <AssignCell
+                assignedToId={row.assignedToId}
+                assignedToName={row.assignedToName}
+                currentUserId={currentUserId}
+                team={team}
+                isAssigning={assigningId === row.id}
+                onAssign={(assignee) => onAssign(row, assignee)}
+              />
+            </div>
+          )}
         </div>
       )}
     />

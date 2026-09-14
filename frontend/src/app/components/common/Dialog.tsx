@@ -11,14 +11,17 @@ interface DialogProps {
   description?: ReactNode
   children: ReactNode
   footer?: ReactNode
-  /** `lg` is used by the outreach composer; it goes full-screen on mobile. */
-  size?: 'sm' | 'md' | 'lg'
+  /** `lg` / `xl` are used by the outreach composer; full-screen on mobile. */
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Extra classes on the scrollable body (e.g. flush split layouts). */
+  bodyClassName?: string
 }
 
 const SIZES = {
   sm: 'sm:max-w-md',
   md: 'sm:max-w-xl',
   lg: 'sm:max-w-3xl',
+  xl: 'sm:max-w-5xl',
 } as const
 
 export function Dialog({
@@ -29,6 +32,7 @@ export function Dialog({
   children,
   footer,
   size = 'md',
+  bodyClassName,
 }: DialogProps) {
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
@@ -38,12 +42,14 @@ export function Dialog({
           className={cn(
             'ox-anim-dialog fixed z-50 flex flex-col bg-surface',
             'inset-0 h-full w-full',
-            'sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[88vh] sm:-translate-x-1/2 sm:-translate-y-1/2',
+            // Clear inset-0's right/bottom so top/left + translate centering works.
+            'sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[88vh] sm:w-full',
+            'sm:-translate-x-1/2 sm:-translate-y-1/2',
             'sm:rounded-xl sm:border sm:border-line sm:shadow-overlay',
             SIZES[size],
           )}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div className="min-w-0">
               <Primitive.Title className="text-[15px] font-semibold text-ink">
                 {title}
@@ -62,10 +68,17 @@ export function Dialog({
             </Primitive.Close>
           </div>
 
-          <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          <div
+            className={cn(
+              'scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-4',
+              bodyClassName,
+            )}
+          >
+            {children}
+          </div>
 
           {footer && (
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-muted px-5 py-3">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-muted px-5 py-3">
               {footer}
             </div>
           )}

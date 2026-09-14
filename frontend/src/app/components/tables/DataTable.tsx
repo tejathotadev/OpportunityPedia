@@ -206,7 +206,7 @@ export function DataTable<T, TKey extends string = string>({
                     <td
                       key={column.key}
                       className={cn(
-                        'relative px-4 py-2.5 align-middle text-[13.5px] text-ink-secondary',
+                        'relative min-w-0 px-4 py-2.5 align-middle text-[13.5px] text-ink-secondary',
                         column.align === 'right' && 'text-right',
                         column.hideBelow && HIDE_BELOW[column.hideBelow],
                         column.cellClassName,

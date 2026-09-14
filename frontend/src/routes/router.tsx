@@ -35,6 +35,8 @@ import { RouteFallback } from './RouteFallback'
 const AppProviders = lazy(() => import('@/app/AppProviders'))
 const LoginPage = lazy(() => import('@/app/pages/LoginPage'))
 const SetPasswordPage = lazy(() => import('@/app/pages/SetPasswordPage'))
+const WorkspaceSetupPage = lazy(() => import('@/app/pages/WorkspaceSetupPage'))
+const FreeSignupPage = lazy(() => import('@/app/pages/FreeSignupPage'))
 const AdminLoginPage = lazy(() => import('@/app/pages/admin/AdminLoginPage'))
 const AdminApp = lazy(() => import('@/app/pages/admin/AdminApp'))
 const AdminUsersPage = lazy(() =>
@@ -54,6 +56,14 @@ export const router = createBrowserRouter([
   {
     path: '/set-password',
     element: split(<SetPasswordPage />),
+  },
+  {
+    path: '/workspace-setup',
+    element: split(<WorkspaceSetupPage />),
+  },
+  {
+    path: '/get-started',
+    element: split(<FreeSignupPage />),
   },
   {
     path: '/admin/login',

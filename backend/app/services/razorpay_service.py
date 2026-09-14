@@ -84,6 +84,9 @@ def verify_payment(
         ) from exc
     payment_repository.mark_paid(payment_id, provider_payment_id=razorpay_payment_id)
     user_id = int(payment["user_id"])
+    from app.core.provisioning import PLAN_PAID
+
+    user_repository.set_customer_plan(user_id, PLAN_PAID)
     user_repository.set_customer_status(user_id, "paid")
     setup = account_service.issue_password_setup(user_id)
     return {"status": "paid", "payment_id": payment_id, **setup}

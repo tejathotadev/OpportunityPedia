@@ -1,4 +1,4 @@
-import { Menu, Search } from 'lucide-react'
+import { LifeBuoy, Menu, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { UserAvatar } from '@/app/components/common/Avatar'
@@ -27,6 +27,7 @@ function shortcutLabel(): string {
 export function Topbar() {
   const setSearchOpen = useUiStore((state) => state.setSearchOpen)
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen)
+  const openSupport = useUiStore((state) => state.openSupport)
   const clearUserSession = useAuthStore((state) => state.clearUserSession)
   const { user } = useCurrentUser()
   const navigate = useNavigate()
@@ -89,8 +90,8 @@ export function Topbar() {
             <DropdownMenuItem onSelect={() => navigate('/app/settings')}>
               Profile settings
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => navigate('/app/settings?section=notifications')}>
-              Notification preferences
+            <DropdownMenuItem icon={<LifeBuoy />} onSelect={() => openSupport()}>
+              Help &amp; Support
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem destructive onSelect={signOut}>

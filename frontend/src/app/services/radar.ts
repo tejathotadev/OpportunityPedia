@@ -53,3 +53,44 @@ export async function triggerRadarRun(): Promise<RadarRunAccepted> {
   const { data } = await api.post<RadarRunAccepted>('/radar/run')
   return data
 }
+
+export interface RadarRunItem {
+  externalJobId?: string
+  title?: string | null
+  boardName?: string | null
+  naics?: string | null
+}
+
+export interface RadarRunHistoryRow {
+  id: number | string
+  runNumber: number
+  status: string
+  boardsRun: number
+  jobsFound: number
+  newCount: number
+  createdAt: string | null
+  finishedAt: string | null
+  newItems: RadarRunItem[]
+}
+
+export interface RadarRunHistory {
+  runs: RadarRunHistoryRow[]
+  count: number
+}
+
+/** `GET /radar/runs` — this customer's durable scan history. */
+export async function getRadarRunHistory(): Promise<RadarRunHistory> {
+  const { data } = await api.get<RadarRunHistory>('/radar/runs')
+  return data
+}
+
+/** `GET /admin/users/:id/radar-runs` */
+export async function getAdminUserRadarRuns(
+  token: string,
+  userId: number | string,
+): Promise<RadarRunHistory> {
+  const { data } = await api.get<RadarRunHistory>(`/admin/users/${userId}/radar-runs`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return data
+}

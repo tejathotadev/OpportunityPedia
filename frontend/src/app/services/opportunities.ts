@@ -22,7 +22,8 @@ export type CompanySortKey =
   | 'matchingCount'
   | 'lastDetectedAt'
   | 'temperature'
-  | 'actions'
+  | 'assignedToName'
+  | 'outreachStatus'
 
 /** Maps UI query state onto the query string the REST API is expected to take. */
 function toQueryParams(query: OpportunityQuery): Record<string, unknown> {
@@ -85,7 +86,6 @@ export async function getOpportunityCompanies(query: {
 export async function getAllOpportunities(): Promise<Opportunity[]> {
   const { data } = await api.get<Paginated<Opportunity>>('/opportunities', {
     params: { page_size: 500 },
-    timeout: 60_000,
   })
   return data.items
 }

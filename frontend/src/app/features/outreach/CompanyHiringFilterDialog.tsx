@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/app/components/common/Button'
 import { Dialog } from '@/app/components/common/Dialog'
@@ -8,13 +8,16 @@ import {
   MultiSelectFilter,
   type FilterOption,
 } from '@/app/components/filters/FilterMenu'
+import { useDebouncedValue } from '@/app/hooks/useDebouncedValue'
 import { getCompanyHiringSignal } from '@/app/services/opportunities'
 import { queryKeys } from '@/app/services/queryKeys'
 import type {
   CompanyHiringFacetBucket,
+  CompanyHiringSignal,
   Opportunity,
   OpportunityCompanyRow,
 } from '@/app/types'
+import { cn } from '@/shared/cn'
 
 interface CompanyHiringFilterDialogProps {
   company: OpportunityCompanyRow | null
@@ -23,12 +26,51 @@ interface CompanyHiringFilterDialogProps {
   onContinue: (opportunity: Opportunity) => void
 }
 
+type HiringFacetFilters = {
+  teams: string[]
+  locations: string[]
+  flexibilities: string[]
+}
+
+const EMPTY_FILTERS: HiringFacetFilters = {
+  teams: [],
+  locations: [],
+  flexibilities: [],
+}
+
+function sortedUnique(values: string[]): string[] {
+  return [...new Set(values.map((v) => v.trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  )
+}
+
+function normalizeFilters(filters: HiringFacetFilters): HiringFacetFilters {
+  return {
+    teams: sortedUnique(filters.teams),
+    locations: sortedUnique(filters.locations),
+    flexibilities: sortedUnique(filters.flexibilities),
+  }
+}
+
+function filtersEqual(a: HiringFacetFilters, b: HiringFacetFilters): boolean {
+  return (
+    a.teams.length === b.teams.length &&
+    a.locations.length === b.locations.length &&
+    a.flexibilities.length === b.flexibilities.length &&
+    a.teams.every((v, i) => v === b.teams[i]) &&
+    a.locations.every((v, i) => v === b.locations[i]) &&
+    a.flexibilities.every((v, i) => v === b.flexibilities[i])
+  )
+}
+
 function toOptions(buckets: CompanyHiringFacetBucket[]): FilterOption<string>[] {
-  return buckets.map((bucket) => ({
-    value: bucket.name,
-    label: bucket.name,
-    count: bucket.count,
-  }))
+  return [...buckets]
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .map((bucket) => ({
+      value: bucket.name,
+      label: bucket.name,
+      count: bucket.count,
+    }))
 }
 
 function keepKnown(selected: string[], buckets: CompanyHiringFacetBucket[]): string[] {
@@ -41,10 +83,20 @@ function keepKnown(selected: string[], buckets: CompanyHiringFacetBucket[]): str
   return next
 }
 
-function summarizeSelection(values: string[], emptyLabel: string): string {
-  if (!values.length) return emptyLabel
+function summarizeSelection(values: string[]): string | null {
+  if (!values.length) return null
   if (values.length === 1) return values[0]
   return `${values[0]} +${values.length - 1}`
+}
+
+function selectionSummary(filters: HiringFacetFilters): string {
+  return [
+    summarizeSelection(filters.teams),
+    summarizeSelection(filters.locations),
+    summarizeSelection(filters.flexibilities),
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function CompanyHiringFilterDialog({
@@ -57,36 +109,46 @@ export function CompanyHiringFilterDialog({
   const [locations, setLocations] = useState<string[]>([])
   const [flexibilities, setFlexibilities] = useState<string[]>([])
 
+  const companyId = company?.companyId ?? ''
+
   useEffect(() => {
     if (!open) return
     setTeams([])
     setLocations([])
     setFlexibilities([])
-  }, [open, company?.companyId])
+  }, [open, companyId])
+
+  const liveFilters = useMemo(
+    () => normalizeFilters({ teams, locations, flexibilities }),
+    [teams, locations, flexibilities],
+  )
+  const debouncedFilters = useDebouncedValue(liveFilters, 200)
+  const hasFilters =
+    liveFilters.teams.length + liveFilters.locations.length + liveFilters.flexibilities.length > 0
+  const queryFilters = open ? (hasFilters ? debouncedFilters : EMPTY_FILTERS) : EMPTY_FILTERS
+  const filtersPending = hasFilters && !filtersEqual(liveFilters, debouncedFilters)
 
   const signal = useQuery({
-    queryKey: queryKeys.companyHiringSignal(company?.companyId ?? '', {
-      teams,
-      locations,
-      flexibilities,
-    }),
-    queryFn: () =>
-      getCompanyHiringSignal(company!.companyId, {
-        teams,
-        locations,
-        flexibilities,
-      }),
-    enabled: open && Boolean(company?.companyId),
-    placeholderData: (previous) => previous,
+    queryKey: queryKeys.companyHiringSignal(companyId, queryFilters),
+    queryFn: () => getCompanyHiringSignal(companyId, queryFilters),
+    enabled: open && Boolean(companyId),
+    staleTime: 60_000,
+    placeholderData: (previous, previousQuery) => {
+      const prevId = previousQuery?.queryKey?.[2]
+      if (prevId === companyId && previous) return previous
+      return undefined
+    },
   })
 
-  const facets = signal.data?.facets
-  const teamBuckets = facets?.teams ?? []
-  const locationBuckets = facets?.locations ?? []
-  const flexBuckets = facets?.flexibilities ?? []
+  const data = signal.data as CompanyHiringSignal | undefined
+  const facets = data?.facets
+  const teamOptions = useMemo(() => toOptions(facets?.teams ?? []), [facets?.teams])
+  const locationOptions = useMemo(() => toOptions(facets?.locations ?? []), [facets?.locations])
+  const flexOptions = useMemo(
+    () => toOptions(facets?.flexibilities ?? []),
+    [facets?.flexibilities],
+  )
 
-  // Drop facet values that no longer apply after another filter changes
-  // (e.g. a location with 0 roles under the selected team).
   useEffect(() => {
     if (!facets) return
     setTeams((prev) => keepKnown(prev, facets.teams))
@@ -94,31 +156,21 @@ export function CompanyHiringFilterDialog({
     setFlexibilities((prev) => keepKnown(prev, facets.flexibilities))
   }, [facets])
 
-  const matched = signal.data?.matchedCount ?? 0
-  const total = signal.data?.totalCount ?? company?.matchingCount ?? 0
-  const hasFilters = teams.length + locations.length + flexibilities.length > 0
-
-  const filterSummary = [
-    teams.length ? summarizeSelection(teams, '') : null,
-    locations.length ? summarizeSelection(locations, '') : null,
-    flexibilities.length ? summarizeSelection(flexibilities, '') : null,
-  ].filter(Boolean)
+  const matched = data?.matchedCount ?? 0
+  const total = data?.totalCount ?? company?.matchingCount ?? 0
+  const summary = selectionSummary(liveFilters)
+  const countUpdating = signal.isFetching || filtersPending
+  const canSend =
+    Boolean(data?.opportunity) && matched >= 1 && !filtersPending && !signal.isFetching
+  const zeroMatch = Boolean(data) && hasFilters && matched < 1 && !countUpdating
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       size="md"
-      title="Focus outreach"
-      description={
-        company ? (
-          <span className="block">
-            Narrow openings at{' '}
-            <span className="font-medium text-ink-secondary">{company.companyName}</span>, then
-            continue to email with the matching count — not a job list.
-          </span>
-        ) : undefined
-      }
+      title={company?.companyName ?? 'Focus outreach'}
+      description="Narrow openings by team, location, or flexibility — then send outreach."
       footer={
         <>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
@@ -126,73 +178,92 @@ export function CompanyHiringFilterDialog({
           </Button>
           <Button
             variant="primary"
-            disabled={!signal.data?.opportunity || matched < 1 || signal.isFetching}
+            disabled={!canSend}
             onClick={() => {
-              if (!signal.data?.opportunity) return
-              onContinue(signal.data.opportunity)
+              if (!data?.opportunity || !canSend) return
+              onContinue(data.opportunity)
             }}
           >
-            Continue to email
+            Send Outreach
           </Button>
         </>
       }
     >
-      {signal.isLoading && !signal.data ? (
-        <ListSkeleton rows={4} />
-      ) : signal.isError && !signal.data ? (
+      {signal.isLoading && !data ? (
+        <ListSkeleton rows={3} />
+      ) : signal.isError && !data ? (
         <ErrorState
           title="Could not load hiring filters"
           description="Try again in a moment."
           onRetry={() => void signal.refetch()}
         />
-      ) : !signal.data ? (
+      ) : !data ? (
         <EmptyState
           title="No hiring signal"
           description="This company has no openings in the current scan."
         />
       ) : (
-        <div className="space-y-5">
-          <div className="rounded-md border border-line bg-surface-sunken px-4 py-4 text-center">
-            <p className="nums text-[28px] font-semibold tracking-tight text-ink">
-              {matched}
-              <span className="ml-2 text-[14px] font-medium text-ink-muted">
-                of {total} open roles
-              </span>
-            </p>
-            <p className="mt-1 text-[13px] text-ink-muted">
-              {hasFilters
-                ? `Showing openings matching ${filterSummary.join(' · ')}`
-                : 'All openings — use the filters below to narrow'}
-            </p>
+        <div className="space-y-4">
+          <div className="flex items-end justify-between gap-3 border-b border-line pb-3">
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  'nums text-[22px] font-semibold tracking-tight text-ink transition-opacity',
+                  countUpdating && 'opacity-60',
+                )}
+              >
+                {matched}
+                <span className="ml-1.5 text-[13px] font-medium text-ink-muted">
+                  of {total} open roles
+                </span>
+              </p>
+              <p className="mt-0.5 truncate text-[13px] text-ink-muted">
+                {hasFilters && summary ? `Matching ${summary}` : 'All openings at this company'}
+              </p>
+            </div>
+            {countUpdating && (
+              <span className="shrink-0 text-[12px] text-ink-subtle">Updating…</span>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <MultiSelectFilter
-              label="Team"
-              options={toOptions(teamBuckets)}
-              selected={teams}
-              onChange={setTeams}
-              searchable={teamBuckets.length > 8}
-            />
-            {locationBuckets.length > 0 && (
+          <div>
+            <p className="mb-2 text-[11.5px] font-semibold tracking-[0.04em] text-ink-subtle uppercase">
+              Narrow by
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
               <MultiSelectFilter
-                label="Where you work"
-                options={toOptions(locationBuckets)}
-                selected={locations}
-                onChange={setLocations}
-                searchable={locationBuckets.length > 6}
-                wide
+                label="Team"
+                options={teamOptions}
+                selected={teams}
+                onChange={setTeams}
+                searchable={teamOptions.length > 8}
               />
-            )}
-            {flexBuckets.length > 0 && (
-              <MultiSelectFilter
-                label="Work flexibility"
-                options={toOptions(flexBuckets)}
-                selected={flexibilities}
-                onChange={setFlexibilities}
-              />
-            )}
+              {locationOptions.length > 0 && (
+                <MultiSelectFilter
+                  label="Where you work"
+                  options={locationOptions}
+                  selected={locations}
+                  onChange={setLocations}
+                  searchable={locationOptions.length > 6}
+                  wide
+                />
+              )}
+              {flexOptions.length > 0 && (
+                <MultiSelectFilter
+                  label="Work flexibility"
+                  options={flexOptions}
+                  selected={flexibilities}
+                  onChange={setFlexibilities}
+                />
+              )}
+            </div>
           </div>
+
+          {zeroMatch && (
+            <p className="rounded-md border border-line bg-surface-sunken px-3 py-2 text-[12.5px] text-ink-secondary">
+              No roles match this selection. Clear a filter to widen the match.
+            </p>
+          )}
 
           {hasFilters && (
             <button
@@ -204,7 +275,7 @@ export function CompanyHiringFilterDialog({
                 setFlexibilities([])
               }}
             >
-              Reset filters
+              Clear selection
             </button>
           )}
         </div>

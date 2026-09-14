@@ -102,7 +102,7 @@ export type OpportunityCategory = (typeof OPPORTUNITY_CATEGORIES)[number]
 export const OPPORTUNITY_CATEGORY_LABEL: Record<OpportunityCategory, string> = {
   all: 'All',
   vendors: 'Vendors',
-  tenders: 'Tenders',
+  tenders: 'Government',
   hiring: 'Commercial',
 }
 

@@ -26,7 +26,7 @@ export function ActivityFeed({ entries, opportunities = [], className }: Activit
   return (
     <ul className={cn('divide-y divide-line', className)}>
       {entries.map((entry) => {
-        const title = titleById.get(entry.opportunityId)
+        const title = entry.opportunityTitle || titleById.get(entry.opportunityId)
         return (
           <li key={entry.id}>
             <button

@@ -33,16 +33,12 @@ function scopeParams({ types, detectedWithinDays, countries }: DashboardScope) {
 export async function getDashboardMetrics(scope: DashboardScope = {}): Promise<DashboardMetrics> {
   const { data } = await api.get<DashboardMetrics>('/dashboard/metrics', {
     params: scopeParams(scope),
-    // Large commercial catalogs + live Radar can exceed the default 15s.
-    timeout: 60_000,
   })
   return data
 }
 
 export async function getPipelineSummary(): Promise<PipelineSummary> {
-  const { data } = await api.get<PipelineSummary>('/dashboard/pipeline', {
-    timeout: 60_000,
-  })
+  const { data } = await api.get<PipelineSummary>('/dashboard/pipeline')
   return data
 }
 
@@ -52,7 +48,6 @@ export async function getNeedsAttention(
 ): Promise<AttentionRow[]> {
   const { data } = await api.get<{ items: AttentionRow[] }>('/dashboard/needs-attention', {
     params: { limit, ...scopeParams(scope) },
-    timeout: 60_000,
   })
   return data.items
 }
@@ -60,7 +55,28 @@ export async function getNeedsAttention(
 export async function getUpcomingDeadlines(limit = 6): Promise<Opportunity[]> {
   const { data } = await api.get<{ items: Opportunity[] }>('/dashboard/deadlines', {
     params: { limit },
-    timeout: 60_000,
   })
   return data.items
+}
+
+export interface DashboardOverview {
+  metrics: DashboardMetrics
+  pipeline: PipelineSummary
+  needsAttention: { items: AttentionRow[] }
+  deadlines: { items: Opportunity[] }
+}
+
+/** `GET /dashboard/overview` — one request for the Overview widgets. */
+export async function getDashboardOverview(
+  scope: DashboardScope = {},
+  opts: { attentionLimit?: number; deadlinesLimit?: number } = {},
+): Promise<DashboardOverview> {
+  const { data } = await api.get<DashboardOverview>('/dashboard/overview', {
+    params: {
+      ...scopeParams(scope),
+      attention_limit: opts.attentionLimit ?? 8,
+      deadlines_limit: opts.deadlinesLimit ?? 5,
+    },
+  })
+  return data
 }

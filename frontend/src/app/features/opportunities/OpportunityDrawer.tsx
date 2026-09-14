@@ -149,7 +149,9 @@ export function OpportunityDrawer({
             <OpportunityActionBar
               opportunity={data}
               isAssigning={assign.isPending}
-              onAssignToMe={() => assign.mutate(data.id)}
+              onAssign={(assignee) =>
+                assign.mutate({ opportunityId: data.id, assignee })
+              }
               onReassign={(userId) => reassign.mutate({ opportunityId: data.id, userId })}
               onUnassign={() => unassign.mutate(data.id)}
               onSendOutreach={() => setComposerOpen(true)}

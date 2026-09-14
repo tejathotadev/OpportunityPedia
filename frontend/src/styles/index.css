@@ -13,8 +13,7 @@
  * surface.
  * ------------------------------------------------------------------ */
 
-/* Semantic surface/line/text values live in :root so a dark theme can be
-   layered in later without touching component code. */
+/* Semantic surface/line/text tokens for the application shell. */
 :root {
   /* Surfaces — warm paper, not cool grey */
   --ox-canvas: #f7f7f2;
@@ -419,25 +418,27 @@
   }
 }
 
+/* Scale/opacity only — never animate translate, or it fights
+   `sm:-translate-x/y-1/2` centering (and breaks mobile full-screen). */
 @keyframes ox-dialog-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.98);
+    scale: 0.98;
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    scale: 1;
   }
 }
 
 @keyframes ox-dialog-out {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    scale: 1;
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.98);
+    scale: 0.98;
   }
 }
 

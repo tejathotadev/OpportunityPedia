@@ -1,5 +1,13 @@
 import axios, { type AxiosInstance } from 'axios'
 
+import { API_TIMEOUT_MS } from '@/app/config/timeouts'
+import { useAuthStore } from '@/app/store/useAuthStore'
+import {
+  markCustomerSignedOut,
+  markSignedInElsewhere,
+  SIGNED_IN_ELSEWHERE_DETAIL,
+} from '@/app/utils/authRedirect'
+
 /**
  * Single Axios instance for the FastAPI backend.
  *
@@ -12,8 +20,7 @@ export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? '/api/v
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  // Default for most calls; dashboard/radar paths override higher when needed.
-  timeout: 30_000,
+  timeout: API_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -41,11 +48,13 @@ api.interceptors.request.use((config) => {
 /** User-facing copy only — raw server errors never reach the interface. */
 export class ApiError extends Error {
   readonly status?: number
+  readonly code?: string
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, code?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.code = code
   }
 }
 
@@ -62,11 +71,69 @@ function messageForStatus(status: number | undefined): string {
   return 'The request could not be completed.'
 }
 
+function detailFromResponse(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null
+  const detail = (data as { detail?: unknown }).detail
+  if (typeof detail === 'string') return detail
+  return null
+}
+
+function bearerFromConfig(config: { headers?: unknown } | undefined): string | null {
+  const headers = config?.headers as { Authorization?: string; authorization?: string } | undefined
+  const raw = headers?.Authorization || headers?.authorization || ''
+  if (typeof raw !== 'string' || !raw.toLowerCase().startsWith('bearer ')) return null
+  return raw.slice(7).trim() || null
+}
+
+let handlingElsewhere = false
+
+function forceSignOutElsewhere(requestToken: string | null): void {
+  if (handlingElsewhere) return
+  handlingElsewhere = true
+  try {
+    const state = useAuthStore.getState()
+    const userToken = state.user?.token ?? null
+    const adminToken = state.admin?.token ?? null
+    const matchedUser = Boolean(requestToken && userToken && requestToken === userToken)
+    const matchedAdmin = Boolean(requestToken && adminToken && requestToken === adminToken)
+
+    if (matchedAdmin || (!matchedUser && !matchedAdmin && adminToken && !userToken)) {
+      state.clearAdminSession()
+      markSignedInElsewhere()
+      if (!window.location.pathname.startsWith('/admin/login')) {
+        window.location.assign('/admin/login')
+      }
+      return
+    }
+
+    state.clearUserSession()
+    markCustomerSignedOut()
+    markSignedInElsewhere()
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.assign('/login')
+    }
+  } finally {
+    window.setTimeout(() => {
+      handlingElsewhere = false
+    }, 1500)
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED') {
+        return Promise.reject(new ApiError('The request timed out. Please try again.'))
+      }
       const status = error.response?.status
+      const detail = detailFromResponse(error.response?.data)
+      if (status === 401 && detail === SIGNED_IN_ELSEWHERE_DETAIL) {
+        forceSignOutElsewhere(bearerFromConfig(error.config))
+        return Promise.reject(
+          new ApiError(SIGNED_IN_ELSEWHERE_DETAIL, status, 'signed_in_elsewhere'),
+        )
+      }
       return Promise.reject(new ApiError(messageForStatus(status), status))
     }
     return Promise.reject(new ApiError('Something went wrong.'))

@@ -22,6 +22,8 @@ export const queryKeys = {
   teamOwnership: () => ['team', 'ownership'] as const,
   dashboardMetrics: (category = 'all', range = 'any', country = 'any') =>
     ['dashboard', 'metrics', category, range, country] as const,
+  dashboardOverview: (category = 'all', range = 'any', country = 'any') =>
+    ['dashboard', 'overview', category, range, country] as const,
   pipeline: () => ['dashboard', 'pipeline'] as const,
   needsAttention: (category = 'all', range = 'any', country = 'any') =>
     ['dashboard', 'needs-attention', category, range, country] as const,
@@ -29,6 +31,8 @@ export const queryKeys = {
   myAssignments: () => ['assignments', 'me'] as const,
   notifications: () => ['notifications'] as const,
   radarStatus: () => ['radar', 'status'] as const,
+  radarRuns: () => ['radar', 'runs'] as const,
+  workspaceTeam: () => ['workspace', 'team'] as const,
 }
 
 /** Everything that can change after an assignment or outreach action. */

@@ -128,6 +128,29 @@ class Settings:
     # Keep well under the frontend Axios timeout so invite never hangs forever.
     SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "8") or "8")
 
+    # --- P5: local-first rate limit / cache / logging / pool sizing ---
+    # Works on one uvicorn worker without Redis or AWS. Disable with "false".
+    RATE_LIMIT_ENABLED: bool = (os.getenv("RATE_LIMIT_ENABLED") or "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    RATE_LIMIT_AUTH_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_AUTH_PER_MINUTE", "20") or "20")
+    RATE_LIMIT_PUBLIC_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PUBLIC_PER_MINUTE", "30") or "30")
+    RATE_LIMIT_API_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_API_PER_MINUTE", "180") or "180")
+    RESPONSE_CACHE_ENABLED: bool = (
+        os.getenv("RESPONSE_CACHE_ENABLED") or "true"
+    ).strip().lower() in {"1", "true", "yes"}
+    RESPONSE_CACHE_TTL_SECONDS: float = float(os.getenv("RESPONSE_CACHE_TTL_SECONDS", "8") or "8")
+    REQUEST_LOG_ENABLED: bool = (os.getenv("REQUEST_LOG_ENABLED") or "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    LOG_LEVEL: str = (os.getenv("LOG_LEVEL") or "INFO").strip() or "INFO"
+    DB_POOL_MIN_SIZE: int = int(os.getenv("DB_POOL_MIN_SIZE", "1") or "1")
+    DB_POOL_MAX_SIZE: int = int(os.getenv("DB_POOL_MAX_SIZE", "10") or "10")
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [part.strip() for part in self.CORS_ORIGINS.split(",") if part.strip()]

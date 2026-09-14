@@ -1,7 +1,7 @@
 # Supabase setup (you do this once)
 
 Your FastAPI backend talks to **Supabase Postgres only** (not Supabase Auth).
-Auth stays FastAPI + JWT. Radar scan data stays in-memory for now.
+Auth stays FastAPI + JWT. Radar **job/vendor snapshots** and run history live in Postgres; only the in-flight “running” run state is process-local.
 
 You already created the Supabase account — complete these steps in the project.
 
@@ -11,25 +11,44 @@ You already created the Supabase account — complete these steps in the project
 2. Open (or create) the OpportunityPedia project
 3. Wait until the database shows ready
 
-## 2. Apply the schema (creates neat tables)
+## 2. Apply the schema
+
+### Fresh project (empty database)
 
 1. Left sidebar → **SQL Editor** → **New query**
-2. Open this file in the repo: `supabase/schema.sql`
-3. Copy **all** of it into the editor → **Run**
-4. Confirm in **Table Editor** that these exist:
-   - `users` — admin, demo, buyers
-   - `contact_leads` — marketing contact form
-   - `payments` — purchases
-   - `password_setup_tokens` — set-password links
-   - `support_tickets` — buyer support (ready for later)
-   - `opportunity_details` — SAM notice facts from radar scans (contact, set-aside, attachment names)
-   - `company_hiring_signals` — commercial company rollups (name, totals, facets; no job list)
-   - `outreach_messages` / `opportunity_activities` — Send Outreach + activity feed
+2. Open `supabase/schema.sql`, paste all of it → **Run**
+3. From `backend/`:
+   ```bash
+   python -m app.db.migrate --stamp
+   ```
+   That records migration versions without re-running them (schema.sql already has the full shape).
 
-If you already ran an older `schema.sql`, also run:
-- `supabase/opportunity_details.sql` (if missing)
-- `supabase/outreach_activity.sql` (for outreach + activity)
-- `supabase/company_hiring_signals.sql` (commercial company persistence)
+### Existing project (tables already created)
+
+From `backend/` with `DATABASE_URL` set:
+
+```bash
+python -m app.db.migrate
+python -m app.db.migrate --status
+```
+
+Migrations live in `supabase/migrations/` and are tracked in `public.schema_migrations`.
+
+Confirm in **Table Editor** that these exist:
+
+- `users` — admin, demo, buyers (includes `workspace_id`, `seat_role`, `session_version`, `removed_at`)
+- `contact_leads` — marketing contact form
+- `payments` — purchases
+- `password_setup_tokens` — set-password links
+- `support_tickets` — buyer support (ready for later)
+- `opportunity_details` — SAM notice facts from radar scans
+- `company_hiring_signals` — commercial company rollups
+- `outreach_messages` / `opportunity_activities` — outreach + activity
+- `radar_runs` — scan history
+- `radar_jobs` / `radar_vendors` — live Radar snapshots (survive API restart)
+- `schema_migrations` — applied migration versions
+
+Older one-off files (`opportunity_details.sql`, etc.) are superseded by `schema.sql` + migrations; you only need them if you are repairing a very old database.
 
 RLS is on with **no public policies**, so the browser/anon key cannot read these tables. Only the backend connection string can.
 

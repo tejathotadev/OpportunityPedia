@@ -18,12 +18,19 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
-def create_access_token(*, user_id: int, email: str, role: str) -> str:
+def create_access_token(
+    *,
+    user_id: int,
+    email: str,
+    role: str,
+    session_version: int = 1,
+) -> str:
     exp = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),
         "email": email,
         "role": role,
+        "sv": int(session_version),
         "exp": exp,
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
@@ -31,3 +38,7 @@ def create_access_token(*, user_id: int, email: str, role: str) -> str:
 
 def decode_access_token(token: str) -> dict:
     return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+
+
+# Returned on 401 when another device signed in with the same account.
+SIGNED_IN_ELSEWHERE = "Signed in elsewhere. Sign in again to continue."

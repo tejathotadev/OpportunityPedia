@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
@@ -9,7 +9,12 @@ import { loginCustomer } from '@/app/services/auth'
 import { useAuthStore } from '@/app/store/useAuthStore'
 import { toast } from '@/app/store/useToastStore'
 import { BrandMark, OpportunityPediaMark } from '@/shared/brand/Logo'
-import { consumeCustomerSignedOut, CUSTOMER_HOME, peekCustomerSignedOut } from '@/app/utils/authRedirect'
+import {
+  consumeCustomerSignedOut,
+  consumeSignedInElsewhere,
+  CUSTOMER_HOME,
+  peekCustomerSignedOut,
+} from '@/app/utils/authRedirect'
 
 /**
  * Customer sign-in. Wired to `POST /api/v1/auth/login`.
@@ -26,6 +31,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (consumeSignedInElsewhere()) {
+      toast.info('Signed in elsewhere', 'Your session ended because you signed in on another device.')
+    }
+  }, [])
 
   function resolvePostLoginPath(): string {
     // Explicit Sign out always returns to Overview (flag beats stale location.state).

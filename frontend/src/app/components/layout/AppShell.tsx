@@ -7,6 +7,9 @@ import { Skeleton } from '@/app/components/feedback/States'
 import { GlobalSearch } from '@/app/components/navigation/GlobalSearch'
 import { Sidebar } from '@/app/components/navigation/Sidebar'
 import { Topbar } from '@/app/components/navigation/Topbar'
+import { RadarRunsDrawer } from '@/app/features/radar/RadarRunsDrawer'
+import { SupportDrawer } from '@/app/features/support/SupportDrawer'
+import { useRadarCompletionToast } from '@/app/hooks/useRadarCompletionToast'
 import { useUiStore } from '@/app/store/useUiStore'
 import { cn } from '@/shared/cn'
 
@@ -26,6 +29,7 @@ export function AppShell() {
   const mobileNavOpen = useUiStore((state) => state.mobileNavOpen)
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen)
   const setSearchOpen = useUiStore((state) => state.setSearchOpen)
+  useRadarCompletionToast()
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -91,6 +95,8 @@ export function AppShell() {
       </div>
 
       <GlobalSearch />
+      <RadarRunsDrawer />
+      <SupportDrawer />
     </div>
   )
 }
