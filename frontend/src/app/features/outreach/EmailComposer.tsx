@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Info, Lock, Send } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { Info, Lock, Send, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -9,6 +10,8 @@ import { Dialog } from '@/app/components/common/Dialog'
 import { Field, TextArea, TextInput } from '@/app/components/forms/Field'
 import { useOpportunityMutations } from '@/app/hooks/useOpportunityMutations'
 import { useCurrentUser } from '@/app/providers/currentUserContext'
+import { ApiError } from '@/app/services/api'
+import { generateAiOutreachDraft } from '@/app/services/outreach'
 import type { Opportunity } from '@/app/types'
 import { formatRelative } from '@/app/utils/date'
 import { canSendOutreach } from '@/app/utils/opportunity'
@@ -125,6 +128,7 @@ export function EmailComposer({ opportunity, open, onOpenChange }: EmailComposer
     handleSubmit,
     reset,
     getValues,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ComposerValues>({
     resolver: zodResolver(schema),
@@ -134,8 +138,40 @@ export function EmailComposer({ opportunity, open, onOpenChange }: EmailComposer
     },
   })
 
+  const [aiError, setAiError] = useState<string | null>(null)
+
+  const aiDraft = useMutation({
+    mutationFn: () =>
+      generateAiOutreachDraft({
+        opportunityId: opportunity.id,
+        styleHint:
+          draftStyle === 'follow_up'
+            ? 'professional_follow_up'
+            : draftStyle === 'partnership'
+              ? 'professional_partnership'
+              : draftStyle === 'role_focused'
+                ? 'professional_role_focused'
+                : 'professional_first_touch',
+      }),
+    onSuccess: (draft) => {
+      setAiError(null)
+      setValue('subject', draft.subject, { shouldDirty: true })
+      setValue('body', draft.body, { shouldDirty: true })
+    },
+    onError: (err: unknown) => {
+      setAiError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Could not generate AI draft.',
+      )
+    },
+  })
+
   useEffect(() => {
     if (!open) return
+    setAiError(null)
     const style = defaultOutreachDraftStyle(opportunity)
     setDraftStyle(style)
     reset({
@@ -159,6 +195,16 @@ export function EmailComposer({ opportunity, open, onOpenChange }: EmailComposer
       subject: draft.subject,
       body: draft.body,
     })
+  }
+
+  const generateWithAi = () => {
+    if (isDirty) {
+      const replace = window.confirm(
+        'Replace the current subject and message with an AI draft? Your edits will be lost.',
+      )
+      if (!replace) return
+    }
+    aiDraft.mutate()
   }
 
   const contactedByOther =
@@ -227,6 +273,14 @@ export function EmailComposer({ opportunity, open, onOpenChange }: EmailComposer
             Cancel
           </Button>
           <Button
+            variant="secondary"
+            iconLeft={<Sparkles />}
+            onClick={generateWithAi}
+            loading={aiDraft.isPending}
+          >
+            Generate with AI
+          </Button>
+          <Button
             variant="primary"
             iconLeft={<Send />}
             onClick={onSubmit}
@@ -281,6 +335,12 @@ export function EmailComposer({ opportunity, open, onOpenChange }: EmailComposer
         <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-4">
           <form onSubmit={onSubmit} className="flex min-h-full flex-col gap-4">
             <div className="space-y-3">{notices}</div>
+
+            {aiError && (
+              <p className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-[13px] text-danger">
+                {aiError}
+              </p>
+            )}
 
             {contextLabel && (
               <p className="rounded-md border border-line bg-surface-sunken px-3 py-2 text-[12.5px] text-ink-secondary md:hidden">

@@ -17,6 +17,18 @@ from app.controllers.admin_controller import (
     set_user_plan,
     update_lead,
 )
+from app.controllers.curated_controller import (
+    archive_curated_opportunity,
+    create_curated_opportunity,
+    get_curated_opportunity,
+    list_curated_opportunities,
+    set_curated_visibility,
+    update_curated_opportunity,
+)
+from app.controllers.ai_outreach_controller import (
+    admin_test_gemini,
+    generate_outreach_ai_draft,
+)
 from app.controllers.workspace_controller import invite_member, list_team, remove_member
 from app.controllers.auth_controller import (
     customer_login,
@@ -49,6 +61,25 @@ api_router.add_api_route(Routes.ADMIN_USER_RADAR_RUNS, list_user_radar_runs, met
 api_router.add_api_route(Routes.ADMIN_PAYMENTS, list_payments, methods=["GET"])
 api_router.add_api_route(Routes.ADMIN_LEADS, list_leads, methods=["GET"])
 api_router.add_api_route(Routes.ADMIN_LEAD, update_lead, methods=["PATCH"])
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITIES, list_curated_opportunities, methods=["GET"]
+)
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITIES, create_curated_opportunity, methods=["POST"]
+)
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITY, get_curated_opportunity, methods=["GET"]
+)
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITY, update_curated_opportunity, methods=["PATCH"]
+)
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITY_VISIBILITY, set_curated_visibility, methods=["PUT"]
+)
+api_router.add_api_route(
+    Routes.ADMIN_CURATED_OPPORTUNITY_ARCHIVE, archive_curated_opportunity, methods=["POST"]
+)
+api_router.add_api_route(Routes.ADMIN_GEMINI_TEST, admin_test_gemini, methods=["POST"])
 api_router.add_api_route(Routes.CONTACT, submit_contact, methods=["POST"])
 api_router.add_api_route(Routes.ACCESS_REQUESTS, create_access_request, methods=["POST"])
 api_router.add_api_route(Routes.FREE_SIGNUP, signup_free, methods=["POST"])
@@ -68,6 +99,7 @@ api_router.add_api_route(Routes.RADAR_RESULTS, latest_results, methods=["GET"])
 # OP frontend read API.
 _OP_READS = [
     (Routes.OP_OPPORTUNITIES, op_controller.list_opportunities),
+    (Routes.OP_SHARED_OPPORTUNITIES, op_controller.list_shared_opportunities),
     (Routes.OP_OPPORTUNITY_COMPANIES, op_controller.list_opportunity_companies),
     (Routes.OP_COMPANY_HIRING_SIGNAL, op_controller.company_hiring_signal),
     (Routes.OP_OPPORTUNITY, op_controller.get_opportunity),
@@ -117,4 +149,7 @@ for _path, _handler, _methods in _OP_WRITES:
     _slug = _path.replace("/", "_").replace("{", "").replace("}", "").strip("_")
     api_router.add_api_route(_path, _handler, methods=_methods, operation_id=_slug)
 
+api_router.add_api_route(
+    Routes.OP_OUTREACH_AI_DRAFT, generate_outreach_ai_draft, methods=["POST"]
+)
 api_router.add_api_route(Routes.RADAR_RUN, op_controller.trigger_radar_run, methods=["POST"])

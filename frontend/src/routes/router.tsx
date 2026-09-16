@@ -45,6 +45,11 @@ const AdminUsersPage = lazy(() =>
 const AdminLeadsPage = lazy(() =>
   import('@/app/pages/admin/AdminApp').then((m) => ({ default: m.AdminLeadsPage })),
 )
+const AdminOpportunitiesPage = lazy(() =>
+  import('@/app/pages/admin/AdminOpportunitiesPage').then((m) => ({
+    default: m.AdminOpportunitiesPage,
+  })),
+)
 
 const split = (node: ReactNode) => <Suspense fallback={<RouteFallback />}>{node}</Suspense>
 
@@ -75,6 +80,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/admin/leads" replace /> },
       { path: 'leads', element: split(<AdminLeadsPage />) },
+      { path: 'opportunities', element: split(<AdminOpportunitiesPage />) },
       { path: 'users', element: split(<AdminUsersPage />) },
       { path: '*', element: <Navigate to="/admin/leads" replace /> },
     ],

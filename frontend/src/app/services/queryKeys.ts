@@ -14,7 +14,8 @@ export const queryKeys = {
     companyId: string,
     filters?: { teams?: string[]; locations?: string[]; flexibilities?: string[] },
   ) => ['opportunities', 'companies', companyId, 'hiring-signal', filters] as const,
-  allOpportunities: () => ['opportunities', 'all'] as const,
+  sharedOpportunities: (category?: string) =>
+    ['opportunities', 'shared', category ?? 'all'] as const,
   opportunity: (id: string) => ['opportunity', id] as const,
   opportunityActivity: (id: string) => ['opportunity', id, 'activity'] as const,
   opportunityOutreach: (id: string) => ['opportunity', id, 'outreach'] as const,

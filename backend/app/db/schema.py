@@ -25,3 +25,5 @@ class Tables:
     radar_jobs = settings.TABLE_RADAR_JOBS
     radar_vendors = settings.TABLE_RADAR_VENDORS
     app_notifications = "app_notifications"
+    curated_opportunities = "curated_opportunities"
+    curated_opportunity_visibility = "curated_opportunity_visibility"

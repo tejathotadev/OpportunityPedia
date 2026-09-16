@@ -105,6 +105,11 @@ export function OpportunityDrawer({
               <div className="flex flex-wrap items-center gap-1.5">
                 <TemperatureBadge temperature={data.temperature} size="md" />
                 <OpportunityTypeBadge type={data.type} noticeType={data.noticeType} />
+                {data.origin === 'curated' && (
+                  <span className="inline-flex h-6 items-center rounded-md border border-forest/30 bg-forest/10 px-2 text-xs font-medium text-forest">
+                    Shared
+                  </span>
+                )}
                 {data.outreachStatus !== 'not_contacted' && (
                   <OutreachStatusBadge status={data.outreachStatus} />
                 )}

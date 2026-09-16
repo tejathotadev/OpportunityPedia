@@ -16,6 +16,14 @@ class Routes:
     ADMIN_PAYMENTS = f"{API_PREFIX}/admin/payments"
     ADMIN_LEADS = f"{API_PREFIX}/admin/leads"
     ADMIN_LEAD = f"{API_PREFIX}/admin/leads/{{lead_id}}"
+    ADMIN_CURATED_OPPORTUNITIES = f"{API_PREFIX}/admin/curated-opportunities"
+    ADMIN_CURATED_OPPORTUNITY = f"{API_PREFIX}/admin/curated-opportunities/{{opportunity_id}}"
+    ADMIN_CURATED_OPPORTUNITY_VISIBILITY = (
+        f"{API_PREFIX}/admin/curated-opportunities/{{opportunity_id}}/visibility"
+    )
+    ADMIN_CURATED_OPPORTUNITY_ARCHIVE = (
+        f"{API_PREFIX}/admin/curated-opportunities/{{opportunity_id}}/archive"
+    )
     CONTACT = f"{API_PREFIX}/contact"
     ACCESS_REQUESTS = f"{API_PREFIX}/access-requests"
     FREE_SIGNUP = f"{API_PREFIX}/plans/free/signup"
@@ -37,6 +45,7 @@ class Routes:
 
     # OP frontend read API. Paths match OP's src/services/*.ts.
     OP_OPPORTUNITIES = f"{API_PREFIX}/opportunities"
+    OP_SHARED_OPPORTUNITIES = f"{API_PREFIX}/opportunities/shared"
     OP_OPPORTUNITY_COMPANIES = f"{API_PREFIX}/opportunities/companies"
     OP_COMPANY_HIRING_SIGNAL = f"{API_PREFIX}/opportunities/companies/{{company_id}}/hiring-signal"
     OP_OPPORTUNITY = f"{API_PREFIX}/opportunities/{{opportunity_id}}"
@@ -65,3 +74,5 @@ class Routes:
     OP_SAVED_VIEW = f"{API_PREFIX}/saved-views/{{view_id}}"
     OP_SEARCH = f"{API_PREFIX}/search"
     OP_OUTREACH = f"{API_PREFIX}/outreach"
+    OP_OUTREACH_AI_DRAFT = f"{API_PREFIX}/outreach/ai-draft"
+    ADMIN_GEMINI_TEST = f"{API_PREFIX}/admin/gemini/test"

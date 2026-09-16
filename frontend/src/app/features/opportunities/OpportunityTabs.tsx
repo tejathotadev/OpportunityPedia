@@ -51,6 +51,11 @@ export function OverviewTab({ opportunity }: { opportunity: Opportunity }) {
   const signals = deriveSignals(opportunity)
   const facts = opportunity.noticeFacts
   const isGovernment = Boolean(facts) || opportunity.type === 'rfp' || opportunity.type === 'procurement'
+  const isCurated = opportunity.origin === 'curated'
+  const skillTags = [
+    ...(opportunity.skills || []),
+    ...(opportunity.technologies || []),
+  ]
 
   return (
     <div className="space-y-6">
@@ -77,6 +82,38 @@ export function OverviewTab({ opportunity }: { opportunity: Opportunity }) {
         )}
       </section>
 
+      {isCurated && (
+        <section>
+          <h3 className="mb-3 text-[13px] font-semibold text-ink">Shared signal details</h3>
+          <DetailGrid>
+            <Fact label="Engagement" value={opportunity.engagement} />
+            <Fact label="Duration" value={opportunity.duration} />
+            <Fact
+              label="Openings"
+              value={opportunity.openings != null ? String(opportunity.openings) : null}
+            />
+            <Fact label="Experience" value={opportunity.experience} />
+            <Fact label="Partnership model" value={opportunity.partnershipModel} />
+            <Fact label="Candidate requirement" value={opportunity.candidateRequirement} />
+            <Fact label="Location" value={opportunity.location} />
+          </DetailGrid>
+          {opportunity.vendorLookingFor && (
+            <p className="mt-3 text-[13.5px] leading-relaxed text-ink-secondary">
+              {opportunity.vendorLookingFor}
+            </p>
+          )}
+          {skillTags.length > 0 && (
+            <ul className="mt-3 flex flex-wrap gap-1.5">
+              {skillTags.map((tag) => (
+                <li key={tag}>
+                  <Badge className="border-line-strong bg-surface text-ink-secondary">{tag}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {facts && (
         <section>
           <h3 className="mb-3 text-[13px] font-semibold text-ink">Notice details</h3>
@@ -100,7 +137,7 @@ export function OverviewTab({ opportunity }: { opportunity: Opportunity }) {
         </section>
       )}
 
-      {!isGovernment && (
+      {!isGovernment && !isCurated && (
         <DetailGrid>
           <div>
             <FieldLabel>Estimated value</FieldLabel>
@@ -121,7 +158,7 @@ export function OverviewTab({ opportunity }: { opportunity: Opportunity }) {
         </DetailGrid>
       )}
 
-      {isGovernment && (
+      {isGovernment && !isCurated && (
         <DetailGrid>
           <div>
             <FieldLabel>Location</FieldLabel>

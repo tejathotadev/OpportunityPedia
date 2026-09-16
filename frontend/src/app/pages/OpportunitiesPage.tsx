@@ -22,6 +22,7 @@ import { useCurrentUser } from '@/app/providers/currentUserContext'
 import {
   getOpportunities,
   getOpportunityCompanies,
+  getSharedOpportunities,
   type CompanySortKey,
 } from '@/app/services/opportunities'
 import { queryKeys } from '@/app/services/queryKeys'
@@ -75,8 +76,15 @@ export function OpportunitiesPage() {
     enabled: showFlatList,
   })
 
+  const sharedCommercial = useQuery({
+    queryKey: queryKeys.sharedOpportunities('commercial'),
+    queryFn: () => getSharedOpportunities({ category: 'commercial', pageSize: 50 }),
+    enabled: showCompanyIndex,
+  })
+
   const companyRows = companies.data?.items ?? []
   const openingRows = openings.data?.items ?? []
+  const sharedRows = sharedCommercial.data?.items ?? []
 
   const openOpportunity = (id: string) => {
     navigate({ pathname: `/app/opportunities/${id}`, search: window.location.search })
@@ -87,8 +95,8 @@ export function OpportunitiesPage() {
   }
 
   const subtitle = isGovernment
-    ? 'Government tenders and procurement notices — each opportunity shown directly.'
-    : 'Commercial companies with hiring activity. Filter by team, location, and flexibility before outreach — openings stay behind the scenes.'
+    ? 'Government tenders and procurement notices — each opportunity shown directly. Shared admin signals appear with a Shared badge.'
+    : 'Commercial companies with hiring activity, plus Shared signals pushed by OpportunityX for your workspace.'
 
   const filterMode = isGovernment ? 'tenders' : 'companies'
 
@@ -167,6 +175,36 @@ export function OpportunitiesPage() {
           </>
         ) : (
           <>
+            {sharedRows.length > 0 && (
+              <div className="border-b border-line">
+                <div className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div>
+                    <p className="text-[13px] font-semibold text-ink">Shared signals</p>
+                    <p className="text-[12px] text-ink-muted">
+                      Opportunities unlocked after your latest Radar run.
+                    </p>
+                  </div>
+                  <span className="nums text-[12px] text-ink-secondary">
+                    {sharedRows.length}
+                  </span>
+                </div>
+                <OpportunityTable
+                  rows={sharedRows}
+                  currentUserId={user.id}
+                  isLoading={sharedCommercial.isLoading}
+                  isError={sharedCommercial.isError}
+                  assigningId={assign.isPending ? assign.variables?.opportunityId : null}
+                  onRetry={() => void sharedCommercial.refetch()}
+                  sort={sort as SortState<OpportunitySortKey>}
+                  onSortChange={setSort}
+                  activeRowKey={openId ?? null}
+                  onRowClick={(opportunity) => openOpportunity(opportunity.id)}
+                  onAssign={(opportunity, assignee) =>
+                    assign.mutate({ opportunityId: opportunity.id, assignee })
+                  }
+                />
+              </div>
+            )}
             <CompanyOpportunityTable
               rows={companyRows}
               currentUserId={user.id}
@@ -181,7 +219,13 @@ export function OpportunitiesPage() {
                 assign.mutate({ opportunityId: `company:${row.companyId}`, assignee })
               }
               emptyState={
-                isFilterEmpty({ ...filters, type: undefined, companyId: undefined }) ? (
+                sharedRows.length > 0 ? (
+                  <EmptyState
+                    icon={<Building2 />}
+                    title="No commercial companies yet"
+                    description="Shared signals above are ready. Company hiring rollups appear when radar finds openings."
+                  />
+                ) : isFilterEmpty({ ...filters, type: undefined, companyId: undefined }) ? (
                   <EmptyState
                     icon={<Building2 />}
                     title="No commercial companies yet"

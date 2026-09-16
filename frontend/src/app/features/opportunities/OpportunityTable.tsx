@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { TemperatureMark } from '@/app/components/badges/TemperatureBadge'
+import { Badge } from '@/app/components/badges/Badge'
 import { OpportunityTypeBadge, OutreachStatusBadge } from '@/app/components/badges/StatusBadges'
 import { AssignCell } from '@/app/components/common/AssignCell'
 import { Tooltip } from '@/app/components/common/Tooltip'
@@ -88,7 +89,17 @@ export function OpportunityTable({
         cellClassName: 'pl-5',
         render: (row) => (
           <Tooltip content={row.title}>
-            <span className="block truncate text-[13.5px] font-medium text-ink">{row.title}</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="block truncate text-[13.5px] font-medium text-ink">{row.title}</span>
+              {row.origin === 'curated' && (
+                <Badge
+                  className="shrink-0 border-forest/30 bg-forest/10 text-forest"
+                  title="Shared by OpportunityX admin"
+                >
+                  Shared
+                </Badge>
+              )}
+            </span>
           </Tooltip>
         ),
       },

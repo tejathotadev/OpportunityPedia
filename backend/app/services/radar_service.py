@@ -459,6 +459,25 @@ def _fetch_and_store(*, user_id: int, run_id: int) -> None:
     except Exception:
         logger.exception("Failed to fan out radar notifications for user_id=%s", user_id)
 
+    # Release admin-curated opportunities queued for this workspace (successful runs only).
+    if run_status == "ok":
+        try:
+            from app.services import curated_opportunity_service
+
+            released = curated_opportunity_service.release_pending_for_workspace(
+                workspace_id=user_id
+            )
+            if released:
+                logger.info(
+                    "Released %s curated opportunities for workspace_id=%s",
+                    released,
+                    user_id,
+                )
+        except Exception:
+            logger.exception(
+                "Failed to release curated opportunities for user_id=%s", user_id
+            )
+
 
 def latest_results(*, user_id: int) -> dict:
     run = radar_repository.latest_run(user_id)

@@ -151,6 +151,12 @@ class Settings:
     DB_POOL_MIN_SIZE: int = int(os.getenv("DB_POOL_MIN_SIZE", "1") or "1")
     DB_POOL_MAX_SIZE: int = int(os.getenv("DB_POOL_MAX_SIZE", "10") or "10")
 
+    # Platform-wide Gemini key (AI outreach drafts). Empty = feature disabled.
+    GEMINI_API_KEY: str = (os.getenv("GEMINI_API_KEY") or "").strip()
+    GEMINI_MODEL: str = (
+        os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
+    ).strip() or "gemini-3.5-flash-lite"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [part.strip() for part in self.CORS_ORIGINS.split(",") if part.strip()]

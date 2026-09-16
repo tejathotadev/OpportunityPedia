@@ -55,6 +55,23 @@ export async function getOpportunities(
   return data
 }
 
+/** Admin-shared curated opportunities visible to the current workspace. */
+export async function getSharedOpportunities(query: {
+  category?: 'commercial' | 'government'
+  page?: number
+  pageSize?: number
+}): Promise<Paginated<Opportunity>> {
+  const { category, page = 1, pageSize = 50 } = query
+  const { data } = await api.get<Paginated<Opportunity>>('/opportunities/shared', {
+    params: {
+      category,
+      page,
+      page_size: pageSize,
+    },
+  })
+  return data
+}
+
 /** Company-first index: one row per employer with matching opportunity counts. */
 export async function getOpportunityCompanies(query: {
   filters?: OpportunityFilters

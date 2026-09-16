@@ -57,6 +57,9 @@ function AdminShell() {
             <NavLink to="/admin/leads" className={navLinkClass}>
               Leads
             </NavLink>
+            <NavLink to="/admin/opportunities" className={navLinkClass}>
+              Opportunities
+            </NavLink>
             <NavLink to="/admin/users" className={navLinkClass}>
               Users
             </NavLink>

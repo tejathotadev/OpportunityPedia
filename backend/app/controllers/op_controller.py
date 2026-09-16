@@ -40,6 +40,10 @@ def list_opportunities(request: Request, user_id: int = Depends(current_user_id)
     return op_service.list_opportunities(user_id=user_id, params=request.query_params)
 
 
+def list_shared_opportunities(request: Request, user_id: int = Depends(current_user_id)):
+    return op_service.list_shared_opportunities(user_id=user_id, params=request.query_params)
+
+
 def list_opportunity_companies(request: Request, user_id: int = Depends(current_user_id)):
     return op_service.list_opportunity_companies(user_id=user_id, params=request.query_params)
 

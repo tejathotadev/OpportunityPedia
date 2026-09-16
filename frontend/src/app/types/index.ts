@@ -238,6 +238,19 @@ export interface Opportunity {
   followUpDueAt?: IsoDateTime | null
   createdAt: IsoDateTime
   updatedAt: IsoDateTime
+  /** Present on admin-shared (curated) opportunities. */
+  origin?: 'radar' | 'curated'
+  engagement?: string | null
+  duration?: string | null
+  openings?: number | null
+  experience?: string | null
+  skills?: string[]
+  technologies?: string[]
+  vendorLookingFor?: string | null
+  partnershipModel?: string | null
+  candidateRequirement?: string | null
+  curatedCategory?: 'commercial' | 'government' | null
+  curatedType?: string | null
 }
 
 /**

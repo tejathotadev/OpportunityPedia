@@ -307,3 +307,21 @@ export async function updateAdminLead(
   })
   return data
 }
+
+export interface GeminiTestResult {
+  ok: boolean
+  configured: boolean
+  model: string
+  message: string
+  sample?: string
+}
+
+/** `POST /admin/gemini/test` — verify platform GEMINI_API_KEY before users rely on AI drafts. */
+export async function testAdminGemini(token: string): Promise<GeminiTestResult> {
+  const { data } = await api.post<GeminiTestResult>(
+    '/admin/gemini/test',
+    {},
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return data
+}

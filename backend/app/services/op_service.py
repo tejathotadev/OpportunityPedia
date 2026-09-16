@@ -21,6 +21,7 @@ from app.core.request_cache import get_request_cache
 from app.providers.sources.sources import SOURCES, enabled_sources
 from app.radar.heat import NAICS_CATEGORIES, match_vendors_to_tenders
 from app.repositories import radar_repository
+from app.services import curated_opportunity_service
 
 # Which collector produced a row must never reach the client, not even as a
 # neutral label, so only an opaque bucket is serialised. It exists purely so
@@ -1033,7 +1034,21 @@ def _providers_for_sources(
 
 
 def list_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
-    """Paginated opportunity list — filter/sort/page in SQL on radar_jobs."""
+    """Paginated opportunity list — radar jobs plus admin-curated government signals."""
+    origin = (_one_of(params, "origin") or "").strip().lower()
+    if origin == "curated":
+        return list_shared_opportunities(user_id=user_id, params=params)
+
+    curated_gov = curated_opportunity_service.list_for_workspace(
+        workspace_id=user_id,
+        category="government",
+    )
+    # When curated gov rows exist, use the in-memory path so pagination/totals stay correct.
+    if curated_gov:
+        items = filter_opportunities(_opportunities(user_id) + curated_gov, params)
+        items = _apply_assignment_state(user_id, _apply_outreach_state(user_id, items))
+        return _paginate(sort_opportunities(items, params), params)
+
     page = max(1, _int_of(params, "page", 1) or 1)
     page_size = min(max(1, _int_of(params, "page_size", 25) or 25), 500)
     offset = (page - 1) * page_size
@@ -1088,6 +1103,20 @@ def list_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
         "page": page,
         "pageSize": page_size,
     }
+
+
+def list_shared_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
+    """Admin-curated opportunities visible to this workspace (commercial or all)."""
+    category = (_one_of(params, "category") or "").strip().lower() or None
+    if category not in (None, "commercial", "government"):
+        category = None
+    items = curated_opportunity_service.list_for_workspace(
+        workspace_id=user_id,
+        category=category,
+    )
+    items = filter_opportunities(items, params)
+    items = _apply_assignment_state(user_id, _apply_outreach_state(user_id, items))
+    return _paginate(sort_opportunities(items, params), params)
 
 
 def _rollup_companies(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1721,8 +1750,15 @@ def source_url_for(*, user_id: int, opportunity_id: str) -> str | None:
     Kept out of every serialised payload: the domain alone identifies the
     collector, which is exactly what must not reach the client.
     """
-    jobs, _ = _load(user_id)
     wanted = str(opportunity_id)
+    if wanted.startswith("curated:"):
+        curated = curated_opportunity_service.get_for_workspace(
+            workspace_id=user_id,
+            opportunity_id=wanted,
+        )
+        return str(curated.get("sourceUrl") or "") or None if curated else None
+
+    jobs, _ = _load(user_id)
     for row in jobs:
         row_id = str(row.get("external_job_id") or row.get("id") or "")
         if row_id == wanted:
@@ -1736,6 +1772,13 @@ def get_opportunity(*, user_id: int, opportunity_id: str) -> dict[str, Any] | No
     if wanted.startswith("company:"):
         company = company_as_opportunity(user_id=user_id, company_id=wanted)
         return _decorate_ownership(user_id, [company])[0] if company else None
+
+    if wanted.startswith("curated:"):
+        curated = curated_opportunity_service.get_for_workspace(
+            workspace_id=user_id,
+            opportunity_id=wanted,
+        )
+        return _decorate_ownership(user_id, [curated])[0] if curated else None
 
     jobs, vendors = _load(user_id)
     mapped = _decorate_ownership(user_id, [map_opportunity(row) for row in jobs])
