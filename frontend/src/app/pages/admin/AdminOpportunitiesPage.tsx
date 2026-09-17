@@ -301,7 +301,7 @@ export function AdminOpportunitiesPage() {
             Opportunities
           </h1>
           <p className="mt-2 max-w-2xl text-[0.9375rem] text-graphite">
-            Add opportunities and choose which customer workspaces can see them. They appear for
+            Add opportunity details first, then assign customer workspaces when ready. They appear for
             those users only after their next successful Radar run.
           </p>
         </div>
@@ -604,8 +604,8 @@ export function AdminOpportunitiesPage() {
               </div>
             </div>
             <p className="mt-1 text-xs text-graphite">
-              Selected customers (and their team) will see this after their next successful Radar
-              run — not immediately.
+              Optional — leave empty to save the opportunity now and assign customers later. Selected
+              workspaces see it after their next successful Radar run.
             </p>
             {users.isLoading ? (
               <p className="mt-3 text-sm text-graphite">Loading users…</p>

@@ -74,13 +74,11 @@ def _clean_str_list(value: Any) -> list[str]:
     return []
 
 
-def _validate_workspaces(workspace_ids: list[int]) -> list[int]:
-    cleaned = sorted({int(x) for x in workspace_ids if x is not None})
+def _validate_workspaces(workspace_ids: list[int] | None) -> list[int]:
+    """Normalize workspace ids. Empty list is allowed (assign customers later)."""
+    cleaned = sorted({int(x) for x in (workspace_ids or []) if x is not None})
     if not cleaned:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Select at least one workspace (customer) who can see this opportunity",
-        )
+        return []
     valid: list[int] = []
     for wid in cleaned:
         user = user_repository.find_by_id(wid)
@@ -102,6 +100,22 @@ def _validate_workspaces(workspace_ids: list[int]) -> list[int]:
         else:
             valid.append(int(user["id"]))
     return sorted(set(valid))
+
+
+def _visibility_ids_from_body(body: dict[str, Any]) -> list[int] | None:
+    """Return visibility list when the key is present (including empty [])."""
+    for key in ("visible_to_user_ids", "visibleToUserIds", "visible_workspace_ids"):
+        if key in body:
+            raw = body.get(key)
+            if raw is None:
+                return []
+            if not isinstance(raw, list):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="visible_to_user_ids must be a list",
+                )
+            return _validate_workspaces(raw)
+    return None
 
 
 def _normalize_fields(body: dict[str, Any]) -> dict[str, Any]:
@@ -204,12 +218,10 @@ def get_admin(opportunity_id: str) -> dict[str, Any]:
 
 def create_admin(*, body: dict[str, Any], created_by: int) -> dict[str, Any]:
     fields = _normalize_fields(body)
-    workspace_ids = _validate_workspaces(
-        body.get("visible_to_user_ids")
-        or body.get("visibleToUserIds")
-        or body.get("visible_workspace_ids")
-        or []
-    )
+    # Empty visibility is allowed — admin can assign workspaces later.
+    workspace_ids = _visibility_ids_from_body(body)
+    if workspace_ids is None:
+        workspace_ids = []
     return curated_opportunity_repository.create(
         fields=fields,
         visible_workspace_ids=workspace_ids,
@@ -219,10 +231,7 @@ def create_admin(*, body: dict[str, Any], created_by: int) -> dict[str, Any]:
 
 def update_admin(*, opportunity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     fields = _normalize_fields(body)
-    raw_vis = body.get("visible_to_user_ids")
-    if raw_vis is None:
-        raw_vis = body.get("visibleToUserIds")
-    workspace_ids = _validate_workspaces(raw_vis) if raw_vis is not None else None
+    workspace_ids = _visibility_ids_from_body(body)
     updated = curated_opportunity_repository.update(
         opportunity_id=opportunity_id,
         fields=fields,
