@@ -16,7 +16,7 @@ import { queryKeys } from '@/app/services/queryKeys'
 import type { SortState } from '@/app/types'
 import type { OpportunitySortKey } from '@/app/utils/opportunity'
 
-const CATEGORY_OPTIONS: FilterOption[] = [
+const CATEGORY_OPTIONS: FilterOption<'any' | 'commercial' | 'government'>[] = [
   { value: 'any', label: 'All categories' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'government', label: 'Government' },

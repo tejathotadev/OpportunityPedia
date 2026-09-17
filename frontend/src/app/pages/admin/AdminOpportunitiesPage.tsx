@@ -142,15 +142,18 @@ function toPayload(form: FormState): CuratedOpportunityInput {
 
 function Field({
   label,
+  hint,
   children,
 }: {
   label: string
+  hint?: string
   children: ReactNode
 }) {
   return (
     <label className="block">
       <span className={labelClass}>{label}</span>
       {children}
+      {hint ? <p className="mt-1 text-xs text-ink-muted">{hint}</p> : null}
     </label>
   )
 }
