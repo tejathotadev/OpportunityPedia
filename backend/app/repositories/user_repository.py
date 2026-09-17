@@ -7,6 +7,7 @@ from app.core.provisioning import (
     SEAT_ROLE_MEMBER,
     SEAT_ROLE_OWNER,
     STATUS_PENDING_PASSWORD,
+    trial_end_from_now,
 )
 from app.db.connection import connect_database
 from app.db.schema import Tables
@@ -15,7 +16,7 @@ from app.db.schema import Tables
 def _select_cols() -> str:
     return (
         "id, role, name, email, phone, company, password_hash, status, "
-        "plan, gov_api_key, is_demo, last_login_at, created_at, updated_at, "
+        "plan, trial_ends_at, gov_api_key, is_demo, last_login_at, created_at, updated_at, "
         "removed_at, workspace_id, seat_role, session_version"
     )
 
@@ -113,14 +114,16 @@ def insert_invited_customer(
     plan: str = PLAN_FREE,
 ) -> int:
     """Create a workspace owner awaiting set-password email (not login-ready yet)."""
+    plan_clean = (plan or PLAN_FREE).strip().lower() or PLAN_FREE
+    trial_ends = trial_end_from_now() if plan_clean == PLAN_FREE else None
     with connect_database() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 f"""
                 INSERT INTO {Tables.users}
                     (role, name, email, phone, company, password_hash, status, plan,
-                     is_demo, seat_role)
-                VALUES ('customer', %s, %s, %s, %s, NULL, %s, %s, FALSE, %s)
+                     trial_ends_at, is_demo, seat_role)
+                VALUES ('customer', %s, %s, %s, %s, NULL, %s, %s, %s, FALSE, %s)
                 RETURNING id
                 """,
                 (
@@ -129,7 +132,8 @@ def insert_invited_customer(
                     (phone or "").strip(),
                     (company or "").strip() or None,
                     STATUS_PENDING_PASSWORD,
-                    (plan or PLAN_FREE).strip().lower() or PLAN_FREE,
+                    plan_clean,
+                    trial_ends,
                     SEAT_ROLE_OWNER,
                 ),
             )
@@ -424,7 +428,11 @@ def set_customer_status(user_id: int, status: str) -> None:
 
 
 def set_customer_plan(user_id: int, plan: str) -> None:
-    """Flip plan on the owner and mirror onto active seats for display."""
+    """Flip plan on the owner and mirror onto active seats for display.
+
+    Free → start/refresh a 2-day trial clock on the owner.
+    Paid → clear trial_ends_at (no lock).
+    """
     with connect_database() as conn:
         with conn.cursor() as cur:
             plan_clean = plan.strip().lower()
@@ -443,15 +451,20 @@ def set_customer_plan(user_id: int, plan: str) -> None:
             if seat != SEAT_ROLE_OWNER:
                 return
             workspace_id = int(row.get("workspace_id") or row["id"])
+            trial_ends = trial_end_from_now() if plan_clean == PLAN_FREE else None
             cur.execute(
                 f"""
                 UPDATE {Tables.users}
-                SET plan = %s
+                SET plan = %s,
+                    trial_ends_at = CASE
+                        WHEN id = %s THEN %s
+                        ELSE trial_ends_at
+                    END
                 WHERE role = 'customer'
                   AND workspace_id = %s
                   AND status <> 'removed'
                 """,
-                (plan_clean, workspace_id),
+                (plan_clean, workspace_id, trial_ends, workspace_id),
             )
 
 

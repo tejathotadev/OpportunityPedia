@@ -2,6 +2,7 @@ import { CheckCircle2, TrendingUp } from 'lucide-react'
 
 import { TemperatureMark } from '@/app/components/badges/TemperatureBadge'
 import { AssignCell } from '@/app/components/common/AssignCell'
+import { TruncatedText } from '@/app/components/common/TruncatedText'
 import { EmptyState } from '@/app/components/feedback/States'
 import { DataTable, type DataTableColumn } from '@/app/components/tables/DataTable'
 import { TEMPERATURE_META } from '@/app/constants/opportunity'
@@ -52,26 +53,29 @@ export function NeedsAttentionTable({
     {
       key: 'title',
       header: 'Opportunity',
-      width: 'w-[40%]',
       cellClassName: 'pl-5',
       render: (row) =>
         isCompany(row) ? (
-          <span className="block min-w-0">
-            <span className="block truncate text-[13.5px] font-medium text-ink">
-              {row.companyName}
-            </span>
-            <span className="block truncate text-[12px] text-ink-muted">
-              {signalLabel(row.signalCount)}
-            </span>
-          </span>
+          <TruncatedText
+            text={row.companyName}
+            className="text-[13.5px] font-medium text-ink"
+            subtitle={
+              <span className="block truncate text-[12px] text-ink-muted">
+                {signalLabel(row.signalCount)}
+              </span>
+            }
+          />
         ) : (
-          <span className="block truncate text-[13.5px] font-medium text-ink">{row.title}</span>
+          <TruncatedText
+            text={row.title}
+            className="text-[13.5px] font-medium text-ink"
+          />
         ),
     },
     {
       key: 'signal',
       header: 'Signal',
-      width: 'w-[148px]',
+      width: 'w-[8.25rem]',
       render: (row) => {
         if (isCompany(row)) {
           if (row.surge) {
@@ -102,14 +106,14 @@ export function NeedsAttentionTable({
     {
       key: 'temperature',
       header: 'Priority',
-      width: 'w-[100px]',
+      width: 'w-[6.5rem]',
       render: (row) => <TemperatureMark temperature={row.temperature} />,
     },
     {
       key: 'detectedAt',
       header: 'Detected',
       hideBelow: 'xl',
-      width: 'w-[92px]',
+      width: 'w-[7rem]',
       render: (row) => (
         <span className="nums text-[13px] whitespace-nowrap" title={formatDate(row.detectedAt)}>
           {formatRelative(row.detectedAt)}
@@ -120,7 +124,7 @@ export function NeedsAttentionTable({
       key: 'deadline',
       header: 'Deadline',
       hideBelow: 'lg',
-      width: 'w-[104px]',
+      width: 'w-[6.5rem]',
       render: (row) => {
         const urgency = getDeadlineUrgency(row.deadline)
         if (!urgency) return <span className="text-ink-subtle">—</span>
@@ -136,7 +140,7 @@ export function NeedsAttentionTable({
       key: 'assign',
       header: 'Assign',
       hideBelow: 'md',
-      width: 'w-[148px]',
+      width: 'w-[8.5rem]',
       cellClassName: 'pr-5',
       render: (row) => (
         <AssignCell
@@ -179,9 +183,11 @@ export function NeedsAttentionTable({
         return (
           <div className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 truncate text-[13.5px] leading-snug font-medium text-ink">
-                {company ? row.companyName : row.title}
-              </p>
+              <TruncatedText
+                as="p"
+                text={company ? row.companyName : row.title}
+                className="min-w-0 text-[13.5px] leading-snug font-medium text-ink"
+              />
               <TemperatureMark temperature={row.temperature} />
             </div>
             {company ? (

@@ -34,6 +34,7 @@ export const queryKeys = {
   radarStatus: () => ['radar', 'status'] as const,
   radarRuns: () => ['radar', 'runs'] as const,
   workspaceTeam: () => ['workspace', 'team'] as const,
+  workspacePlan: () => ['workspace', 'plan'] as const,
 }
 
 /** Everything that can change after an assignment or outreach action. */

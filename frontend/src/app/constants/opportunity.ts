@@ -95,13 +95,12 @@ export const OPPORTUNITY_TYPE_LABEL: Record<OpportunityType, string> = {
 
 export const OPPORTUNITY_TYPES = Object.keys(OPPORTUNITY_TYPE_LABEL) as OpportunityType[]
 
-export const OPPORTUNITY_CATEGORIES = ['all', 'vendors', 'tenders', 'hiring'] as const
+export const OPPORTUNITY_CATEGORIES = ['all', 'tenders', 'hiring'] as const
 
 export type OpportunityCategory = (typeof OPPORTUNITY_CATEGORIES)[number]
 
 export const OPPORTUNITY_CATEGORY_LABEL: Record<OpportunityCategory, string> = {
   all: 'All',
-  vendors: 'Vendors',
   tenders: 'Government',
   hiring: 'Commercial',
 }
@@ -113,7 +112,6 @@ export const OPPORTUNITY_CATEGORY_LABEL: Record<OpportunityCategory, string> = {
  */
 export const OPPORTUNITY_CATEGORY_TYPES: Record<OpportunityCategory, OpportunityType[]> = {
   all: [],
-  vendors: ['vendor_requirement'],
   tenders: ['rfp', 'procurement'],
   hiring: ['hiring'],
 }

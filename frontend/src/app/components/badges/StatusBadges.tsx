@@ -3,6 +3,7 @@ import type { OpportunityType, OutreachStatus } from '@/app/types'
 import { cn } from '@/shared/cn'
 
 import { Badge } from './Badge'
+import { Tooltip } from '@/app/components/common/Tooltip'
 
 export function OpportunityTypeBadge({
   type,
@@ -13,10 +14,21 @@ export function OpportunityTypeBadge({
   noticeType?: string | null
   className?: string
 }) {
+  const label = opportunityDisplayType({ type, noticeType })
   return (
-    <Badge className={cn('bg-forest-50 text-forest-700 border-forest-100', className)}>
-      {opportunityDisplayType({ type, noticeType })}
-    </Badge>
+    <Tooltip content={label}>
+      <span className="block min-w-0 max-w-full">
+        <Badge
+          title={label}
+          className={cn(
+            'max-w-full bg-forest-50 text-forest-700 border-forest-100',
+            className,
+          )}
+        >
+          <span className="truncate">{label}</span>
+        </Badge>
+      </span>
+    </Tooltip>
   )
 }
 

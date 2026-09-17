@@ -55,16 +55,18 @@ export async function getOpportunities(
   return data
 }
 
-/** Admin-shared curated opportunities visible to the current workspace. */
+/** Admin-shared curated opportunities — Vendors dashboard (handpicked / original sources). */
 export async function getSharedOpportunities(query: {
   category?: 'commercial' | 'government'
+  temperature?: string | string[]
   page?: number
   pageSize?: number
 }): Promise<Paginated<Opportunity>> {
-  const { category, page = 1, pageSize = 50 } = query
+  const { category, temperature, page = 1, pageSize = 50 } = query
   const { data } = await api.get<Paginated<Opportunity>>('/opportunities/shared', {
     params: {
       category,
+      temperature,
       page,
       page_size: pageSize,
     },

@@ -14,7 +14,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_GEMINI_TIMEOUT = 45.0
+_GEMINI_TIMEOUT = 60.0
 
 
 def _require_key() -> str:
@@ -168,7 +168,6 @@ def _context_lines(opportunity: dict[str, Any], sender: dict[str, Any]) -> str:
         f"Sender name: {sender.get('name') or ''}",
         f"Sender company: {sender.get('company') or ''}",
         f"Sender email: {sender.get('email') or ''}",
-        f"Sender phone: {sender.get('phone') or ''}",
         f"Outreach status: {opportunity.get('outreachStatus') or 'not_contacted'}",
     ]
     return "\n".join(lines)
@@ -221,7 +220,7 @@ Rules (strict):
 - Use ONLY facts present in CONTEXT. Do not invent deadlines, contract values, client names, visa status, or source platforms.
 - If a field is empty, omit it — do not guess.
 - Subject: one clear line, under 90 characters, no ALL CAPS.
-- Body: short paragraphs, plain text (no HTML). Include a greeting and a clean sign-off using the sender details when available.
+- Body: short paragraphs, plain text (no HTML). Include a greeting and a clean sign-off using sender name, company, and email only (never include a phone number).
 - Do not claim you already spoke, unless outreach status indicates prior contact.
 - Do not mention "AI", "radar", "scraped", or internal tooling.
 - Focus on offering relevant staffing / partnership help tied to the opportunity context.

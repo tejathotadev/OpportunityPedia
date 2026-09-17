@@ -9,6 +9,8 @@ This module only defines shared constants and the wait→activate onboarding pat
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 PLAN_FREE = "free"
 PLAN_PAID = "paid"
 ALLOWED_PLANS = frozenset({PLAN_FREE, PLAN_PAID})
@@ -37,9 +39,16 @@ STATUS_ACTIVE = "active"
 STATUS_PAID = "paid"  # legacy paid marker before password; still login-ready with active
 STATUS_REMOVED = "removed"
 
+# Free-plan access window from signup (or free plan assignment).
+TRIAL_DAYS = 2
+
 # After admin removes a trial user, hard-delete their row (and cascaded data)
 # once this many days have passed.
 TRIAL_PURGE_DAYS = 2
+
+TRIAL_ENDED_DETAIL = (
+    "Your 2-day free trial has ended. Contact support to upgrade to a paid plan."
+)
 
 PASSWORD_SETUP_STATUSES = frozenset(
     {
@@ -82,3 +91,53 @@ def post_password_next(*, plan: str | None, seat_role: str | None = None) -> str
     if uses_workspace_provisioning(plan, seat_role=seat_role):
         return "workspace_setup"
     return "login"
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def trial_end_from_now() -> datetime:
+    return datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+
+
+def free_trial_applies(owner: dict | None) -> bool:
+    """True when this workspace is on a timed free trial (not paid / demo)."""
+    if not owner:
+        return False
+    if bool(owner.get("is_demo")):
+        return False
+    plan = (owner.get("plan") or PLAN_FREE).strip().lower() or PLAN_FREE
+    return plan == PLAN_FREE
+
+
+def trial_is_expired(owner: dict | None, *, now: datetime | None = None) -> bool:
+    """True when free trial has ended and access should be locked."""
+    if not free_trial_applies(owner):
+        return False
+    ends = _as_utc(owner.get("trial_ends_at") if owner else None)
+    if ends is None:
+        # Missing clock on free plan: treat as expired so access cannot drift open.
+        return True
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    return clock >= ends
+
+
+def trial_seconds_remaining(owner: dict | None, *, now: datetime | None = None) -> int | None:
+    """Seconds until trial end; 0 if ended; None if no trial clock (paid/demo)."""
+    if not free_trial_applies(owner):
+        return None
+    ends = _as_utc(owner.get("trial_ends_at") if owner else None)
+    if ends is None:
+        return 0
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    return max(0, int((ends - clock).total_seconds()))
+

@@ -1,9 +1,11 @@
 import * as Primitive from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Suspense, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { Skeleton } from '@/app/components/feedback/States'
+import { AppFooter } from '@/app/components/layout/AppFooter'
+import { Tooltip } from '@/app/components/common/Tooltip'
 import { GlobalSearch } from '@/app/components/navigation/GlobalSearch'
 import { Sidebar } from '@/app/components/navigation/Sidebar'
 import { Topbar } from '@/app/components/navigation/Topbar'
@@ -26,6 +28,7 @@ function RouteFallback() {
 
 export function AppShell() {
   const collapsed = useUiStore((state) => state.sidebarCollapsed)
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const mobileNavOpen = useUiStore((state) => state.mobileNavOpen)
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen)
   const setSearchOpen = useUiStore((state) => state.setSearchOpen)
@@ -43,7 +46,7 @@ export function AppShell() {
   }, [setSearchOpen])
 
   return (
-    <div className="op-app flex min-h-dvh bg-canvas">
+    <div className="op-app flex h-dvh overflow-hidden bg-canvas">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[70] focus:rounded-md focus:bg-forest-900 focus:px-3 focus:py-2 focus:text-sm focus:text-white"
@@ -59,6 +62,29 @@ export function AppShell() {
       >
         <Sidebar collapsed={collapsed} />
       </aside>
+
+      {/* Circular collapse control sits on the sidebar / header seam. */}
+      <Tooltip content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="right">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'fixed top-14 z-40 hidden size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center',
+            'rounded-full border border-line bg-surface text-ink-secondary shadow-sm',
+            'transition-[left,colors] duration-200 hover:bg-surface-sunken hover:text-ink',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-600',
+            'lg:inline-flex',
+            collapsed ? 'left-[68px]' : 'left-[236px]',
+          )}
+        >
+          {collapsed ? (
+            <ChevronRight className="size-3.5" aria-hidden />
+          ) : (
+            <ChevronLeft className="size-3.5" aria-hidden />
+          )}
+        </button>
+      </Tooltip>
 
       <Primitive.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <Primitive.Portal>
@@ -82,16 +108,20 @@ export function AppShell() {
 
       <div
         className={cn(
-          'flex min-w-0 flex-1 flex-col transition-[padding] duration-200',
+          'flex h-dvh min-w-0 flex-1 flex-col overflow-hidden transition-[padding] duration-200',
           collapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]',
         )}
       >
         <Topbar />
-        <main id="main-content" className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <main
+          id="main-content"
+          className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
+        >
           <Suspense fallback={<RouteFallback />}>
             <Outlet />
           </Suspense>
         </main>
+        <AppFooter />
       </div>
 
       <GlobalSearch />

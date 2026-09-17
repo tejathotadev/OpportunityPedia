@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, History, LifeBuoy, LogOut, UserRound } from 'lucide-react'
+import { History, LifeBuoy, LogOut, UserRound } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import { UserAvatar } from '@/app/components/common/Avatar'
@@ -76,7 +76,6 @@ function NavRow({
 }
 
 export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarProps) {
-  const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const openRadarRunsDrawer = useUiStore((state) => state.openRadarRuns)
   const openSupport = useUiStore((state) => state.openSupport)
   const clearUserSession = useAuthStore((state) => state.clearUserSession)
@@ -161,23 +160,6 @@ export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarP
       </nav>
 
       <div className={cn('shrink-0 border-t border-line py-3', isCollapsed ? 'px-3' : 'px-4')}>
-        <Tooltip content="Help & Support" side="right" enabled={isCollapsed}>
-          <button
-            type="button"
-            onClick={() => {
-              onNavigate?.()
-              openSupport()
-            }}
-            className={cn(
-              'mb-2 flex w-full cursor-pointer items-center gap-2.5 rounded-md text-[13.5px] font-medium text-ink-secondary transition-colors hover:bg-surface-sunken hover:text-ink',
-              isCollapsed ? 'h-9 w-9 justify-center' : 'h-9 px-2.5',
-            )}
-          >
-            <LifeBuoy className="size-[17px] shrink-0 text-ink-muted" aria-hidden />
-            {!isCollapsed && <span>Help & Support</span>}
-          </button>
-        </Tooltip>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -227,29 +209,6 @@ export function Sidebar({ collapsed, variant = 'desktop', onNavigate }: SidebarP
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {variant === 'desktop' && (
-        <div className={cn('shrink-0 border-t border-line px-3 py-2', !isCollapsed && 'px-4')}>
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={cn(
-              'flex h-8 items-center gap-2 rounded-md text-[12.5px] font-medium text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink',
-              isCollapsed ? 'w-9 justify-center' : 'w-full px-2',
-            )}
-          >
-            {isCollapsed ? (
-              <ChevronsRight className="size-4" aria-hidden />
-            ) : (
-              <>
-                <ChevronsLeft className="size-4" aria-hidden />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   )
 }

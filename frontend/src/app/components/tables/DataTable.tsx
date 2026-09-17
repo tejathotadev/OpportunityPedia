@@ -135,7 +135,7 @@ export function DataTable<T, TKey extends string = string>({
                       isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : undefined
                     }
                     className={cn(
-                      'px-4 py-2.5 text-[11.5px] font-semibold tracking-[0.04em] text-ink-muted uppercase',
+                      'overflow-hidden px-3 py-2.5 text-[11.5px] font-semibold tracking-[0.04em] whitespace-nowrap text-ink-muted uppercase',
                       column.align === 'right' && 'text-right',
                       column.width,
                       column.hideBelow && HIDE_BELOW[column.hideBelow],
@@ -152,24 +152,24 @@ export function DataTable<T, TKey extends string = string>({
                           })
                         }
                         className={cn(
-                          'inline-flex items-center gap-1 rounded uppercase transition-colors hover:text-ink',
+                          'inline-flex max-w-full items-center gap-1 overflow-hidden rounded uppercase transition-colors hover:text-ink',
                           column.align === 'right' && 'flex-row-reverse',
                           isSorted && 'text-ink',
                         )}
                       >
-                        {column.header}
+                        <span className="truncate">{column.header}</span>
                         {isSorted ? (
                           direction === 'asc' ? (
-                            <ArrowUp className="size-3" aria-hidden />
+                            <ArrowUp className="size-3 shrink-0" aria-hidden />
                           ) : (
-                            <ArrowDown className="size-3" aria-hidden />
+                            <ArrowDown className="size-3 shrink-0" aria-hidden />
                           )
                         ) : (
-                          <ChevronsUpDown className="size-3 opacity-40" aria-hidden />
+                          <ChevronsUpDown className="size-3 shrink-0 opacity-40" aria-hidden />
                         )}
                       </button>
                     ) : (
-                      column.header
+                      <span className="block truncate">{column.header}</span>
                     )}
                   </th>
                 )
@@ -206,7 +206,7 @@ export function DataTable<T, TKey extends string = string>({
                     <td
                       key={column.key}
                       className={cn(
-                        'relative min-w-0 px-4 py-2.5 align-middle text-[13.5px] text-ink-secondary',
+                        'relative min-w-0 overflow-hidden px-3 py-2.5 align-middle text-[13.5px] text-ink-secondary',
                         column.align === 'right' && 'text-right',
                         column.hideBelow && HIDE_BELOW[column.hideBelow],
                         column.cellClassName,

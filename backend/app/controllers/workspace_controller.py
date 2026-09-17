@@ -15,6 +15,10 @@ def list_team(customer: dict = Depends(require_customer)):
     return workspace_service.list_team(actor=customer)
 
 
+def get_plan(customer: dict = Depends(require_customer)):
+    return workspace_service.get_plan_summary(actor=customer)
+
+
 def invite_member(body: InviteMemberBody, customer: dict = Depends(require_customer)):
     return workspace_service.invite_member(
         actor=customer,

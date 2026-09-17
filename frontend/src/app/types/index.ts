@@ -347,13 +347,17 @@ export interface Paginated<T> {
 
 export interface DashboardMetrics {
   totalVendors: number
-  /** Government notices + commercial companies (not individual job openings). */
+  /** Government notices + commercial companies + released Vendors (curated) rows. */
   totalOpportunities: number
   /** Commercial job openings count (shown in the Hot card). */
   totalOpenings?: number
   opportunitiesAddedThisWeek: number
   veryHot: number
   veryHotNeedingAttention: number
+  /** Radar government notices marked Very Hot. */
+  veryHotGovernment?: number
+  /** Admin-curated Vendors rows marked Very Hot. */
+  veryHotVendors?: number
   /** Openings volume for the Hot card (not temperature-bucket size). */
   hot: number
   hotUnassigned: number

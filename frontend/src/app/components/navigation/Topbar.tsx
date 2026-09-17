@@ -1,20 +1,6 @@
-import { LifeBuoy, Menu, Search } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Menu, Search } from 'lucide-react'
 
-import { UserAvatar } from '@/app/components/common/Avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/app/components/common/DropdownMenu'
-import { useCurrentUser } from '@/app/providers/currentUserContext'
-import { useAuthStore } from '@/app/store/useAuthStore'
-import { toast } from '@/app/store/useToastStore'
 import { useUiStore } from '@/app/store/useUiStore'
-import { CUSTOMER_HOME, markCustomerSignedOut } from '@/app/utils/authRedirect'
 
 import { NotificationPanel } from './NotificationPanel'
 
@@ -27,20 +13,9 @@ function shortcutLabel(): string {
 export function Topbar() {
   const setSearchOpen = useUiStore((state) => state.setSearchOpen)
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen)
-  const openSupport = useUiStore((state) => state.openSupport)
-  const clearUserSession = useAuthStore((state) => state.clearUserSession)
-  const { user } = useCurrentUser()
-  const navigate = useNavigate()
-
-  function signOut() {
-    markCustomerSignedOut()
-    navigate('/login', { replace: true, state: { from: CUSTOMER_HOME } })
-    clearUserSession()
-    toast.info('Signed out')
-  }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 sm:px-4">
+    <header className="z-30 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 sm:px-4">
       <button
         type="button"
         aria-label="Open navigation"
@@ -51,7 +26,7 @@ export function Topbar() {
       </button>
 
       {/* min-w-0 lets the field shrink on narrow screens; without it the flex
-          item keeps its intrinsic width and pushes the account menu off. */}
+          item keeps its intrinsic width and pushes utilities off. */}
       <button
         type="button"
         onClick={() => setSearchOpen(true)}
@@ -66,39 +41,9 @@ export function Topbar() {
         </kbd>
       </button>
 
-      {/* Utility only — the primary action for a screen lives in its PageHeader. */}
+      {/* Utility only — account lives in the sidebar; primary actions live in PageHeader. */}
       <div className="ml-auto flex items-center gap-1">
         <NotificationPanel />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label="Account menu"
-              className="ml-0.5 inline-flex items-center rounded-full p-0.5 transition-colors hover:bg-surface-sunken"
-            >
-              <UserAvatar name={user.name} tone={user.avatarTone} size="md" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-60">
-            <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
-            <div className="px-2 pb-2">
-              <p className="text-[13px] font-medium text-ink">{user.name}</p>
-              <p className="text-[12px] text-ink-muted">{user.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate('/app/settings')}>
-              Profile settings
-            </DropdownMenuItem>
-            <DropdownMenuItem icon={<LifeBuoy />} onSelect={() => openSupport()}>
-              Help &amp; Support
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem destructive onSelect={signOut}>
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   )

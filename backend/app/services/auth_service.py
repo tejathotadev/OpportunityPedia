@@ -8,6 +8,8 @@ from app.core.provisioning import (
     PLAN_FREE,
     SEAT_ROLE_OWNER,
     STATUS_REMOVED,
+    TRIAL_ENDED_DETAIL,
+    trial_is_expired,
 )
 from app.core.security import (
     ROLE_PLATFORM_ADMIN,
@@ -75,8 +77,9 @@ def current_customer(token: str) -> dict:
 
     # Members inherit login readiness from an active owner workspace.
     workspace_id = user_repository.resolve_workspace_id(user) or int(user["id"])
+    owner = user
     if workspace_id != int(user["id"]):
-        owner = user_repository.find_by_id(workspace_id)
+        owner = user_repository.find_by_id(workspace_id) or user
         if not owner or owner.get("status") == STATUS_REMOVED:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -87,6 +90,12 @@ def current_customer(token: str) -> dict:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Workspace is not active yet",
             )
+
+    if trial_is_expired(owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=TRIAL_ENDED_DETAIL,
+        )
 
     return _public_user(user, owner_id=workspace_id)
 

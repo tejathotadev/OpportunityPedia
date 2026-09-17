@@ -73,7 +73,7 @@ function emptyForm(): FormState {
     candidate_requirement: '',
     contact_name: '',
     contact_email: '',
-    priority: 'hot',
+    priority: 'very_hot',
     description: '',
     detected_at: todayInputValue(),
     visible_to_user_ids: [],
@@ -106,7 +106,7 @@ function formFromRow(row: CuratedOpportunityAdmin): FormState {
     candidate_requirement: row.candidateRequirement || '',
     contact_name: row.contactName || '',
     contact_email: row.contactEmail || '',
-    priority: row.priority || 'hot',
+    priority: row.priority || 'very_hot',
     description: row.description || '',
     detected_at: row.detectedAt ? row.detectedAt.slice(0, 10) : todayInputValue(),
     visible_to_user_ids: row.visibleWorkspaceIds || [],
@@ -559,17 +559,8 @@ export function AdminOpportunitiesPage() {
               />
             </Field>
 
-            <Field label="Priority">
-              <select
-                className={inputClass}
-                value={form.priority}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, priority: e.target.value as CuratedPriority }))
-                }
-              >
-                <option value="very_hot">Very Hot</option>
-                <option value="hot">Hot</option>
-              </select>
+            <Field label="Priority" hint="Vendors opportunities are always Very Hot.">
+              <input className={inputClass} value="Very Hot" disabled readOnly />
             </Field>
             <Field label="Detected date">
               <input

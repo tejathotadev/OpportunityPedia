@@ -13,7 +13,7 @@ export type CuratedCommercialType =
 
 export type CuratedGovernmentType = 'government_tender' | 'procurement' | 'rfp' | 'other'
 
-export type CuratedPriority = 'very_hot' | 'hot'
+export type CuratedPriority = 'very_hot'
 
 export interface CuratedOpportunityAdmin {
   id: string

@@ -66,10 +66,12 @@ export function Field({
 export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean
   iconLeft?: ReactNode
+  /** Interactive control (e.g. show/hide password). Placed inside the field on the right. */
+  iconRight?: ReactNode
 }
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function TextInput(
-  { className, invalid, iconLeft, ...props },
+  { className, invalid, iconLeft, iconRight, ...props },
   ref,
 ) {
   const input = (
@@ -81,6 +83,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
         READ_ONLY_CONTROL,
         'h-9 px-2.5',
         iconLeft && 'pl-8',
+        iconRight && 'pr-10',
         invalid && 'border-danger focus:border-danger focus:ring-danger/20',
         className,
       )}
@@ -88,14 +91,21 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
     />
   )
 
-  if (!iconLeft) return input
+  if (!iconLeft && !iconRight) return input
 
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-subtle [&_svg]:size-4">
-        {iconLeft}
-      </span>
+      {iconLeft ? (
+        <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-subtle [&_svg]:size-4">
+          {iconLeft}
+        </span>
+      ) : null}
       {input}
+      {iconRight ? (
+        <span className="absolute top-1/2 right-1.5 -translate-y-1/2 text-ink-subtle [&_svg]:size-4">
+          {iconRight}
+        </span>
+      ) : null}
     </div>
   )
 })

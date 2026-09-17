@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Clock, Flame, Radar, RotateCw, ThermometerSun, UserCheck } from 'lucide-react'
+import { Building2, Clock, Flame, Play, Radar, RotateCw, ThermometerSun, UserCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { ActivityFeed } from '@/app/components/activity/ActivityFeed'
 import { Button } from '@/app/components/common/Button'
+import { Dialog } from '@/app/components/common/Dialog'
 import { StatCard } from '@/app/components/common/StatCard'
 import { Tooltip } from '@/app/components/common/Tooltip'
 import {
@@ -41,7 +42,7 @@ import { getDashboardOverview } from '@/app/services/dashboard'
 import { triggerRadarRun } from '@/app/services/radar'
 import { queryKeys } from '@/app/services/queryKeys'
 import { toast } from '@/app/store/useToastStore'
-import { firstNameOf } from '@/app/utils/format'
+import { firstNameOf, formatNumber } from '@/app/utils/format'
 import { cn } from '@/shared/cn'
 
 const RANGE_OPTIONS: FilterOption<DetectedRange>[] = DETECTED_RANGES.map((value) => ({
@@ -76,6 +77,7 @@ export function OverviewPage() {
   } = useRadarCooldown()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
+  const [veryHotChooserOpen, setVeryHotChooserOpen] = useState(false)
   const [category, setCategory] = useState<OpportunityCategory>('all')
   const [range, setRange] = useState<DetectedRange>('any')
   const [country, setCountry] = useState<CountryFilter>('any')
@@ -163,7 +165,23 @@ export function OverviewPage() {
             <span>
               <Button
                 variant="primary"
-                iconLeft={isCoolingDown ? <Clock /> : <Radar />}
+                className={
+                  !isCoolingDown && !(scanning || isRunning)
+                    ? 'min-w-[4.75rem] gap-1.5 pr-3.5 pl-[0.8125rem] font-semibold tracking-[-0.01em]'
+                    : 'gap-1.5 font-semibold tracking-[-0.01em]'
+                }
+                iconLeft={
+                  isCoolingDown ? (
+                    <Clock />
+                  ) : (
+                    <Play
+                      aria-hidden
+                      fill="currentColor"
+                      strokeWidth={0}
+                      className="translate-x-[1.5px]"
+                    />
+                  )
+                }
                 loading={scanning || isRunning}
                 disabled={isCoolingDown}
                 onClick={() => void runRadar()}
@@ -171,7 +189,7 @@ export function OverviewPage() {
                 {scanning || isRunning
                   ? 'Scanning…'
                   : !isCoolingDown
-                    ? 'Run Radar'
+                    ? 'Run'
                     : hasCountdown
                       ? `Available in ${countdown}`
                       : 'Rate limited'}
@@ -190,39 +208,21 @@ export function OverviewPage() {
           className="flex flex-wrap items-center gap-1.5"
         >
           {OPPORTUNITY_CATEGORIES.map((value) => {
-            const comingSoon = value === 'vendors'
-            const active = !comingSoon && value === category
+            const active = value === category
             return (
               <button
                 key={value}
                 type="button"
-                disabled={comingSoon}
                 aria-pressed={active}
-                aria-disabled={comingSoon || undefined}
-                title={
-                  comingSoon
-                    ? 'Partnership vendors — coming soon'
-                    : undefined
-                }
-                onClick={() => {
-                  if (comingSoon) return
-                  setCategory(value)
-                }}
+                onClick={() => setCategory(value)}
                 className={cn(
                   'inline-flex h-8 items-center rounded-md border px-3 text-[13px] font-medium transition-colors',
-                  comingSoon
-                    ? 'cursor-not-allowed border-line bg-surface-muted text-ink-subtle'
-                    : active
-                      ? 'border-signal-600 bg-signal-600 text-white'
-                      : 'border-line-strong bg-surface text-ink-secondary hover:bg-surface-sunken hover:text-ink',
+                  active
+                    ? 'border-signal-600 bg-signal-600 text-white'
+                    : 'border-line-strong bg-surface text-ink-secondary hover:bg-surface-sunken hover:text-ink',
                 )}
               >
                 {OPPORTUNITY_CATEGORY_LABEL[value]}
-                {comingSoon ? (
-                  <span className="ml-1.5 text-[10px] font-normal tracking-wide uppercase">
-                    Soon
-                  </span>
-                ) : null}
               </button>
             )
           })}
@@ -293,7 +293,7 @@ export function OverviewPage() {
                 contextTone="critical"
                 icon={Flame}
                 accent="veryhot"
-                to={scoped('/app/opportunities?lane=government&temperature=very_hot')}
+                onClick={() => setVeryHotChooserOpen(true)}
               />
               <StatCard
                 label="Hot"
@@ -418,6 +418,55 @@ export function OverviewPage() {
           </Panel>
         </div>
       </div>
+
+      <Dialog
+        open={veryHotChooserOpen}
+        onOpenChange={setVeryHotChooserOpen}
+        title="Very Hot opportunities"
+        description="Choose which Very Hot list to open."
+        size="sm"
+      >
+        <div className="space-y-2">
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-lg border border-line px-3.5 py-3 text-left transition-colors hover:border-line-strong hover:bg-surface-muted"
+            onClick={() => {
+              setVeryHotChooserOpen(false)
+              navigate(scoped('/app/opportunities?lane=government&temperature=very_hot'))
+            }}
+          >
+            <Radar className="size-4 shrink-0 text-ink-subtle" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-semibold text-ink">Government data</span>
+              <span className="block text-[12.5px] text-ink-muted">
+                Radar-discovered notices on Opportunities
+              </span>
+            </span>
+            <span className="nums text-[15px] font-semibold text-veryhot-strong">
+              {formatNumber(metrics?.veryHotGovernment ?? 0)}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-lg border border-line px-3.5 py-3 text-left transition-colors hover:border-line-strong hover:bg-surface-muted"
+            onClick={() => {
+              setVeryHotChooserOpen(false)
+              navigate(scoped('/app/vendors?temperature=very_hot'))
+            }}
+          >
+            <Building2 className="size-4 shrink-0 text-ink-subtle" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-semibold text-ink">Vendors data</span>
+              <span className="block text-[12.5px] text-ink-muted">
+                Admin-shared opportunities on Vendors
+              </span>
+            </span>
+            <span className="nums text-[15px] font-semibold text-veryhot-strong">
+              {formatNumber(metrics?.veryHotVendors ?? 0)}
+            </span>
+          </button>
+        </div>
+      </Dialog>
 
       <OpportunityDrawer
         opportunityId={selectedId}

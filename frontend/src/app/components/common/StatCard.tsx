@@ -13,6 +13,8 @@ interface StatCardProps {
   icon?: LucideIcon
   /** Makes the whole card a shortcut into the matching filtered list. */
   to?: string
+  /** Alternative to `to` when the card opens a chooser / dialog. */
+  onClick?: () => void
   accent?: 'none' | 'veryhot' | 'hot'
 }
 
@@ -29,10 +31,11 @@ export function StatCard({
   contextTone = 'neutral',
   icon: Icon,
   to,
+  onClick,
   accent = 'none',
 }: StatCardProps) {
   const navigate = useNavigate()
-  const interactive = Boolean(to)
+  const interactive = Boolean(to || onClick)
 
   const content = (
     <>
@@ -72,7 +75,14 @@ export function StatCard({
   }
 
   return (
-    <button type="button" onClick={() => navigate(to as string)} className={base}>
+    <button
+      type="button"
+      onClick={() => {
+        if (onClick) onClick()
+        else if (to) navigate(to)
+      }}
+      className={base}
+    >
       {content}
     </button>
   )

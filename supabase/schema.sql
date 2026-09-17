@@ -20,9 +20,11 @@ create table if not exists public.users (
   status            text not null default 'pending',
   plan              text not null default 'free'
                       check (plan in ('free', 'paid')),
+  -- Free trial end (signup + 2 days). NULL = paid / demo / no clock.
+  trial_ends_at     timestamptz,
   gov_api_key       text,
   is_demo           boolean not null default false,
-  -- Soft-remove + 2-day purge for trial accounts
+  -- Soft-remove + 2-day purge after admin removes a trial account
   removed_at        timestamptz,
   -- Workspace seats: owner workspace_id = id; members point at the owner id
   workspace_id      bigint references public.users (id) on delete set null,
@@ -49,6 +51,10 @@ create index if not exists ix_users_workspace_id
 create index if not exists ix_users_removed_at
   on public.users (removed_at)
   where removed_at is not null;
+
+create index if not exists ix_users_trial_ends_at
+  on public.users (trial_ends_at)
+  where trial_ends_at is not null;
 
 create index if not exists ix_users_workspace_seat
   on public.users (workspace_id, seat_role);

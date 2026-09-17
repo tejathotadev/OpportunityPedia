@@ -59,7 +59,6 @@ export function CompanyOpportunityTable({
       key: 'companyName',
       header: 'Company',
       sortable: true,
-      width: 'w-[32%]',
       cellClassName: 'pl-5',
       render: (row) => (
         <div className="min-w-0">
@@ -72,6 +71,7 @@ export function CompanyOpportunityTable({
       key: 'matchingCount',
       header: 'Openings',
       sortable: true,
+      width: 'w-[5.75rem]',
       render: (row) => (
         <span className="nums text-[13px] font-medium text-ink">{row.matchingCount}</span>
       ),
@@ -79,6 +79,7 @@ export function CompanyOpportunityTable({
     {
       key: 'temperature',
       header: 'Priority',
+      width: 'w-[6.5rem]',
       render: (row) => {
         const temp = row.highestTemperature as OpportunityTemperature
         return <TemperatureMark temperature={temp} />
@@ -86,9 +87,10 @@ export function CompanyOpportunityTable({
     },
     {
       key: 'lastDetectedAt',
-      header: 'Last detected',
+      header: 'Detected',
       sortable: true,
       hideBelow: 'md',
+      width: 'w-[7rem]',
       render: (row) =>
         row.lastDetectedAt ? (
           <span className="nums text-[13px] whitespace-nowrap" title={formatDate(row.lastDetectedAt)}>
@@ -102,7 +104,7 @@ export function CompanyOpportunityTable({
       key: 'outreachStatus',
       header: 'Outreach',
       hideBelow: 'md',
-      width: 'w-[120px]',
+      width: 'w-[8.25rem]',
       render: (row) => (
         <Tooltip
           enabled={Boolean(row.lastContactedAt)}
@@ -121,7 +123,7 @@ export function CompanyOpportunityTable({
     {
       key: 'assignedToName',
       header: 'Assign',
-      width: 'w-[148px]',
+      width: 'w-[8.5rem]',
       cellClassName: 'pr-5',
       render: (row) => (
         <AssignCell

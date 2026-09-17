@@ -134,7 +134,24 @@ api.interceptors.response.use(
           new ApiError(SIGNED_IN_ELSEWHERE_DETAIL, status, 'signed_in_elsewhere'),
         )
       }
-      return Promise.reject(new ApiError(messageForStatus(status), status))
+      if (
+        status === 403 &&
+        typeof detail === 'string' &&
+        detail.toLowerCase().includes('free trial has ended')
+      ) {
+        const state = useAuthStore.getState()
+        if (state.user?.token) {
+          state.clearUserSession()
+          markCustomerSignedOut()
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.assign('/login')
+          }
+        }
+        return Promise.reject(new ApiError(detail, status, 'trial_ended'))
+      }
+      const message =
+        typeof detail === 'string' && detail.trim() ? detail : messageForStatus(status)
+      return Promise.reject(new ApiError(message, status))
     }
     return Promise.reject(new ApiError('Something went wrong.'))
   },

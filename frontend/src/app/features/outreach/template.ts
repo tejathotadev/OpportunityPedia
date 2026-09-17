@@ -102,7 +102,7 @@ function greetingLine(opportunity: Opportunity): string {
 }
 
 function signatureBlock(sender: User): string {
-  return [sender.name, sender.company, sender.phone, sender.email].filter(Boolean).join('\n')
+  return [sender.name, sender.company, sender.email].filter(Boolean).join('\n')
 }
 
 function focusTeams(opportunity: Opportunity): string[] {

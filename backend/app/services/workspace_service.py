@@ -6,13 +6,19 @@ from datetime import datetime
 
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 from app.core.provisioning import (
     PLAN_FREE,
+    PLAN_PAID,
     SEAT_ROLE_MEMBER,
     SEAT_ROLE_OWNER,
     STATUS_ACTIVE,
     STATUS_REMOVED,
+    TRIAL_DAYS,
+    free_trial_applies,
     seat_limit_for_plan,
+    trial_is_expired,
+    trial_seconds_remaining,
 )
 from app.repositories import user_repository
 
@@ -82,6 +88,46 @@ def list_team(*, actor: dict) -> dict:
             and str(user.get("status") or "") in {STATUS_ACTIVE, "paid"}
         ),
         "members": [_member_public(row) for row in members],
+    }
+
+
+def get_plan_summary(*, actor: dict) -> dict:
+    """Plan, trial clock, and usage limits for Settings."""
+    actor_id = int(actor["id"])
+    user = user_repository.find_by_id(actor_id)
+    if not user or user.get("role") != "customer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+    workspace_id = user_repository.resolve_workspace_id(user) or actor_id
+    owner = user_repository.find_by_id(workspace_id) or user
+    plan = (owner.get("plan") or PLAN_FREE).strip().lower() or PLAN_FREE
+    limit = seat_limit_for_plan(plan)
+    used = user_repository.count_workspace_seats(workspace_id)
+    on_trial = free_trial_applies(owner)
+    expired = trial_is_expired(owner)
+    seconds_left = trial_seconds_remaining(owner)
+    return {
+        "workspace_id": workspace_id,
+        "plan": plan,
+        "is_demo": bool(owner.get("is_demo")),
+        "seat_limit": limit,
+        "seats_used": used,
+        "seats_remaining": max(0, limit - used),
+        "trial": {
+            "applies": on_trial,
+            "days": TRIAL_DAYS if on_trial else None,
+            "ends_at": _iso(owner.get("trial_ends_at")) if on_trial else None,
+            "seconds_remaining": seconds_left,
+            "expired": expired if on_trial else False,
+        },
+        "limits": {
+            "radar_runs_per_day": int(settings.RADAR_RUNS_PER_DAY),
+            "radar_cooldown_minutes": int(settings.radar_cooldown_minutes),
+            "team_seats": limit,
+        },
+        "paid_comparison": {
+            "plan": PLAN_PAID,
+            "seat_limit": seat_limit_for_plan(PLAN_PAID),
+        },
     }
 
 

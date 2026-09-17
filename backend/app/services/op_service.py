@@ -1034,20 +1034,14 @@ def _providers_for_sources(
 
 
 def list_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
-    """Paginated opportunity list — radar jobs plus admin-curated government signals."""
+    """Paginated opportunity list — radar-discovered jobs only (not admin-curated).
+
+    Admin-curated / handpicked rows are served from ``list_shared_opportunities``
+    and shown on the customer Vendors dashboard.
+    """
     origin = (_one_of(params, "origin") or "").strip().lower()
     if origin == "curated":
         return list_shared_opportunities(user_id=user_id, params=params)
-
-    curated_gov = curated_opportunity_service.list_for_workspace(
-        workspace_id=user_id,
-        category="government",
-    )
-    # When curated gov rows exist, use the in-memory path so pagination/totals stay correct.
-    if curated_gov:
-        items = filter_opportunities(_opportunities(user_id) + curated_gov, params)
-        items = _apply_assignment_state(user_id, _apply_outreach_state(user_id, items))
-        return _paginate(sort_opportunities(items, params), params)
 
     page = max(1, _int_of(params, "page", 1) or 1)
     page_size = min(max(1, _int_of(params, "page_size", 25) or 25), 500)
@@ -1106,7 +1100,7 @@ def list_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
 
 
 def list_shared_opportunities(*, user_id: int, params: Any) -> dict[str, Any]:
-    """Admin-curated opportunities visible to this workspace (commercial or all)."""
+    """Admin-curated opportunities for the Vendors dashboard (handpicked / shared)."""
     category = (_one_of(params, "category") or "").strip().lower() or None
     if category not in (None, "commercial", "government"):
         category = None
@@ -1880,6 +1874,12 @@ def get_vendor(*, user_id: int, vendor_id: str) -> dict[str, Any] | None:
 # ---------------------------------------------------------------- dashboard
 
 
+def _released_curated(user_id: int) -> list[dict[str, Any]]:
+    """Admin-curated Vendors rows already released for this workspace."""
+    items = curated_opportunity_service.list_for_workspace(workspace_id=user_id)
+    return _decorate_ownership(user_id, items)
+
+
 def _by_types(items: list[dict[str, Any]], types: list[str] | None) -> list[dict[str, Any]]:
     if not types:
         return items
@@ -1937,14 +1937,25 @@ def dashboard_metrics(
     typed = _by_countries(_by_types(_opportunities(user_id), types), countries)
     items = _detected_within(typed, detected_within_days)
 
-    # Opportunities = each government notice + each commercial company.
+    curated_typed = _by_countries(
+        _by_types(_released_curated(user_id), types),
+        countries,
+    )
+    curated_items = _detected_within(curated_typed, detected_within_days)
+
+    # Opportunities = each government notice + each commercial company + each Vendors row.
     # Openings = individual commercial jobs (shown on the Hot card).
     notices = [i for i in items if i["type"] != "hiring"]
     openings = [i for i in items if i["type"] == "hiring"]
-    very_hot_opps = [i for i in notices if i["temperature"] == "very_hot"]
+    very_hot_gov = [i for i in notices if i["temperature"] == "very_hot"]
+    very_hot_vendors = [i for i in curated_items if i.get("temperature") == "very_hot"]
+    very_hot_opps = very_hot_gov + very_hot_vendors
 
     notices_this_week = sum(
         1 for i in typed if i["type"] != "hiring" and _within_days(i.get("detectedAt"), 7)
+    )
+    curated_this_week = sum(
+        1 for i in curated_typed if _within_days(i.get("detectedAt"), 7)
     )
 
     if openings:
@@ -2000,17 +2011,21 @@ def dashboard_metrics(
 
     return {
         "totalVendors": len(_agency_rollup(user_id)),
-        "totalOpportunities": len(notices) + len(commercial_companies),
+        "totalOpportunities": len(notices) + len(commercial_companies) + len(curated_items),
         "totalOpenings": total_openings,
         # Deliberately ignores the range so "this week" keeps meaning a week
         # even when the user narrows the window to 24 hours.
-        "opportunitiesAddedThisWeek": notices_this_week + len(companies_this_week),
+        "opportunitiesAddedThisWeek": notices_this_week
+        + len(companies_this_week)
+        + curated_this_week,
         "veryHot": len(very_hot_opps),
         "veryHotNeedingAttention": sum(
             1
             for i in very_hot_opps
             if not i.get("assignedToId")
         ),
+        "veryHotGovernment": len(very_hot_gov),
+        "veryHotVendors": len(very_hot_vendors),
         # Hot = commercial companies with hiring (Greenhouse / Lever / Ashby).
         # hotUnassigned keeps total open roles for the card caption.
         "hot": len(commercial_companies),
@@ -2527,6 +2542,7 @@ def send_outreach(*, user_id: int, payload: dict[str, Any], actor_id: int | None
 
     user = user_repository.find_by_id(user_id) or {}
     sender_name = str(user.get("name") or "User")
+    sender_company = str(user.get("company") or "").strip()
     sender_email = from_email or str(user.get("email") or "")
     if not sender_email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sender email required")
@@ -2537,12 +2553,17 @@ def send_outreach(*, user_id: int, payload: dict[str, Any], actor_id: int | None
             detail="Email delivery is not configured",
         )
 
+    # Inbox "From" shows the customer's company (sold product), not OpportunityPedia.
+    # Mail still sends from the verified platform mailbox; Reply-To is the user.
+    from_display = sender_company or sender_name
+
     try:
         email_service.send_outreach_email(
             to_email=to_email,
             subject=subject,
             body=body,
             reply_to=sender_email,
+            from_display_name=from_display,
         )
         send_status = "sent"
         error_detail = None

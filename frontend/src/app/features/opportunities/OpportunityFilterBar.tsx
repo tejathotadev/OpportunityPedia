@@ -18,7 +18,6 @@ import {
 import { useDebouncedValue } from '@/app/hooks/useDebouncedValue'
 import type { OpportunityFilters } from '@/app/types'
 import { countActiveFilters } from '@/app/utils/opportunity'
-import { cn } from '@/shared/cn'
 
 interface OpportunityFilterBarProps {
   filters: OpportunityFilters
@@ -54,7 +53,6 @@ export function OpportunityFilterBar({
 }: OpportunityFilterBarProps) {
   const showTitleMatch = mode === 'openings'
   const showDeadline = mode === 'openings' || mode === 'tenders'
-  const showIndustryPlaceholder = mode === 'companies'
 
   const [term, setTerm] = useState(filters.search ?? '')
   const [titleTerm, setTitleTerm] = useState(filters.titleMatch ?? '')
@@ -213,20 +211,6 @@ export function OpportunityFilterBar({
             anyValue="any"
             onChange={(next) => update({ country: next ? [next] : undefined })}
           />
-          {showIndustryPlaceholder && (
-            <button
-              type="button"
-              disabled
-              title="Industry filters coming soon"
-              className={cn(
-                'inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium',
-                'border-line bg-surface-muted text-ink-subtle',
-              )}
-            >
-              Industry
-              <span className="text-[10.5px] font-normal tracking-wide uppercase">Soon</span>
-            </button>
-          )}
           {showDeadline && (
             <SingleSelectFilter
               label="Deadline"

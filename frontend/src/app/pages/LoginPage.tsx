@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 
 import { Button } from '@/app/components/common/Button'
 import { Field, TextInput } from '@/app/components/forms/Field'
@@ -29,6 +29,7 @@ export default function LoginPage() {
     () => String((location.state as { email?: string } | null)?.email || ''),
   )
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -129,9 +130,6 @@ export default function LoginPage() {
             <ArrowLeft className="size-4" aria-hidden />
             Back to home
           </button>
-          <Link to="/contact" className="text-sm font-medium text-forest hover:underline">
-            Need access?
-          </Link>
         </header>
 
         <main className="flex flex-1 items-center justify-center px-6 py-10 md:px-10">
@@ -167,12 +165,23 @@ export default function LoginPage() {
               <Field label="Password" htmlFor="login-password" required>
                 <TextInput
                   id="login-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="h-11"
+                  iconRight={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      className="inline-flex size-8 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+                    </button>
+                  }
                 />
               </Field>
 

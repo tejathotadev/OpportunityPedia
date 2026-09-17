@@ -26,7 +26,9 @@ GOVERNMENT_TYPES = {
     "other",
 }
 
-ALLOWED_PRIORITIES = {"very_hot", "hot"}
+ALLOWED_PRIORITIES = {"very_hot"}
+# Vendors / curated opportunities are always Very Hot (never Hot).
+DEFAULT_PRIORITY = "very_hot"
 
 # Maps curated opportunity_type → OP frontend Opportunity.type
 _TYPE_TO_OP: dict[str, str] = {
@@ -125,12 +127,8 @@ def _normalize_fields(body: dict[str, Any]) -> dict[str, Any]:
             detail="title is required",
         )
 
-    priority = str(body.get("priority") or "hot").strip().lower()
-    if priority not in ALLOWED_PRIORITIES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="priority must be very_hot or hot",
-        )
+    # Curated / Vendors rows are always Very Hot — ignore any other value from the form.
+    priority = DEFAULT_PRIORITY
 
     source = "Internal"
     source_url = None
@@ -258,9 +256,7 @@ def map_to_opportunity(row: dict[str, Any]) -> dict[str, Any]:
     oid = str(row["id"])
     client_id = f"curated:{oid}"
     op_type = _TYPE_TO_OP.get(str(row.get("opportunityType") or ""), "other")
-    temperature = str(row.get("priority") or "hot")
-    if temperature not in ("very_hot", "hot"):
-        temperature = "hot"
+    temperature = "very_hot"
 
     skills = row.get("skills") or []
     technologies = row.get("technologies") or []

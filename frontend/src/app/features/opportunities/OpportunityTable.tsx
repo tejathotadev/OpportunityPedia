@@ -5,6 +5,7 @@ import { Badge } from '@/app/components/badges/Badge'
 import { OpportunityTypeBadge, OutreachStatusBadge } from '@/app/components/badges/StatusBadges'
 import { AssignCell } from '@/app/components/common/AssignCell'
 import { Tooltip } from '@/app/components/common/Tooltip'
+import { TruncatedText } from '@/app/components/common/TruncatedText'
 import { DataTable, type DataTableColumn } from '@/app/components/tables/DataTable'
 import { opportunityDisplayType, TEMPERATURE_META } from '@/app/constants/opportunity'
 import { useCurrentUser } from '@/app/providers/currentUserContext'
@@ -85,22 +86,22 @@ export function OpportunityTable({
         key: 'title',
         header: 'Opportunity',
         sortable: true,
-        width: 'w-[34%]',
         cellClassName: 'pl-5',
         render: (row) => (
-          <Tooltip content={row.title}>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="block truncate text-[13.5px] font-medium text-ink">{row.title}</span>
-              {row.origin === 'curated' && (
+          <TruncatedText
+            text={row.title}
+            className="text-[13.5px] font-medium text-ink"
+            trailing={
+              row.origin === 'curated' ? (
                 <Badge
                   className="shrink-0 border-forest/30 bg-forest/10 text-forest"
                   title="Shared by OpportunityX admin"
                 >
                   Shared
                 </Badge>
-              )}
-            </span>
-          </Tooltip>
+              ) : null
+            }
+          />
         ),
       },
       type: {
@@ -108,7 +109,8 @@ export function OpportunityTable({
         header: 'Type',
         sortable: true,
         hideBelow: 'lg',
-        width: 'w-[140px]',
+        width: 'w-[11rem]',
+        cellClassName: 'overflow-hidden',
         render: (row) => (
           <OpportunityTypeBadge type={row.type} noticeType={row.noticeType} />
         ),
@@ -117,7 +119,7 @@ export function OpportunityTable({
         key: 'temperature',
         header: 'Temperature',
         sortable: true,
-        width: 'w-[100px]',
+        width: 'w-[6.5rem]',
         render: (row) => <TemperatureMark temperature={row.temperature} />,
       },
       detectedAt: {
@@ -125,10 +127,11 @@ export function OpportunityTable({
         header: 'Detected',
         sortable: true,
         hideBelow: 'xl',
-        width: 'w-[92px]',
+        width: 'w-[6.75rem]',
+        cellClassName: 'overflow-hidden',
         render: (row) => (
           <Tooltip content={formatDate(row.detectedAt)}>
-            <span className="nums whitespace-nowrap text-[13px]">
+            <span className="nums block truncate whitespace-nowrap text-[13px]">
               {formatRelative(row.detectedAt)}
             </span>
           </Tooltip>
@@ -139,14 +142,15 @@ export function OpportunityTable({
         header: 'Deadline',
         sortable: true,
         hideBelow: 'lg',
-        width: 'w-[96px]',
+        width: 'w-[6.75rem]',
+        cellClassName: 'overflow-hidden',
         render: (row) => <DeadlineCell opportunity={row} />,
       },
       assignedToName: {
         key: 'assignedToName',
         header: 'Assign',
         sortable: true,
-        width: 'w-[148px]',
+        width: 'w-[8.5rem]',
         cellClassName: 'pr-5',
         render: (row) =>
           onAssign ? (
@@ -173,7 +177,7 @@ export function OpportunityTable({
         header: 'Outreach',
         sortable: true,
         hideBelow: 'md',
-        width: 'w-[120px]',
+        width: 'w-[8.25rem]',
         render: (row) => (
           <Tooltip
             enabled={Boolean(row.lastContactedAt)}
@@ -262,9 +266,11 @@ export function OpportunityTable({
       renderMobileCard={(row) => (
         <div className="space-y-1.5">
           <div className="flex items-start justify-between gap-3">
-            <p className="min-w-0 truncate text-[13.5px] leading-snug font-medium text-ink">
-              {row.title}
-            </p>
+            <TruncatedText
+              as="p"
+              text={row.title}
+              className="min-w-0 text-[13.5px] leading-snug font-medium text-ink"
+            />
             <OutreachStatusBadge status={row.outreachStatus} />
           </div>
           <p className="text-[12.5px] text-ink-muted">{opportunityDisplayType(row)}</p>

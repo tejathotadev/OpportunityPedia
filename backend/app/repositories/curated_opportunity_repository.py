@@ -35,8 +35,8 @@ def _ensure_tables(cur) -> None:
           contact_email       text,
           source              text NOT NULL DEFAULT 'LinkedIn',
           source_url          text,
-          priority            text NOT NULL DEFAULT 'hot'
-                                CHECK (priority IN ('very_hot', 'hot')),
+          priority            text NOT NULL DEFAULT 'very_hot'
+                                CHECK (priority = 'very_hot'),
           description         text NOT NULL DEFAULT '',
           detected_at         timestamptz NOT NULL DEFAULT now(),
           status              text NOT NULL DEFAULT 'active'
@@ -107,7 +107,7 @@ def _row_to_dict(row: dict[str, Any], *, visible_workspace_ids: list[int] | None
         "contactEmail": row.get("contact_email"),
         "source": row.get("source") or "LinkedIn",
         "sourceUrl": row.get("source_url"),
-        "priority": row.get("priority") or "hot",
+        "priority": row.get("priority") or "very_hot",
         "description": row.get("description") or "",
         "detectedAt": row["detected_at"].isoformat() if row.get("detected_at") else None,
         "status": row.get("status") or "active",
@@ -330,7 +330,7 @@ def create(
                     fields.get("contact_email"),
                     fields.get("source") or "LinkedIn",
                     fields.get("source_url"),
-                    fields.get("priority") or "hot",
+                    fields.get("priority") or "very_hot",
                     fields.get("description") or "",
                     fields.get("detected_at") or now,
                     json.dumps(fields.get("payload") or {}),
@@ -421,7 +421,7 @@ def update(
                     fields.get("contact_email"),
                     fields.get("source") or "LinkedIn",
                     fields.get("source_url"),
-                    fields.get("priority") or "hot",
+                    fields.get("priority") or "very_hot",
                     fields.get("description") or "",
                     fields.get("detected_at") or now,
                     json.dumps(fields.get("payload") or {}),

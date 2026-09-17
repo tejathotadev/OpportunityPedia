@@ -1,6 +1,6 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ExternalLink, X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -8,7 +8,6 @@ import { TemperatureBadge } from '@/app/components/badges/TemperatureBadge'
 import { OpportunityTypeBadge, OutreachStatusBadge } from '@/app/components/badges/StatusBadges'
 import { IconButton } from '@/app/components/common/Button'
 import { Drawer } from '@/app/components/common/Drawer'
-import { Tooltip } from '@/app/components/common/Tooltip'
 import { ErrorState, ListSkeleton, Skeleton } from '@/app/components/feedback/States'
 import { useOpportunityMutations } from '@/app/hooks/useOpportunityMutations'
 import { getOpportunityById } from '@/app/services/opportunities'
@@ -69,17 +68,6 @@ export function OpportunityDrawer({
           </button>
 
           <div className="ml-auto flex items-center gap-1">
-            {data && (
-              <Tooltip content="Open as full page">
-                <Link
-                  to={`/app/opportunities/${data.id}`}
-                  className="inline-flex size-7 items-center justify-center rounded-md text-ink-secondary transition-colors hover:bg-surface-sunken hover:text-ink"
-                  aria-label="Open as full page"
-                >
-                  <ExternalLink className="size-4" />
-                </Link>
-              </Tooltip>
-            )}
             <IconButton label="Close panel" size="sm" onClick={onClose}>
               <X />
             </IconButton>

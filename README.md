@@ -17,9 +17,10 @@
    - It scans many job boards + US government contracts (SAM.gov).
    - It shows staffing jobs, government tenders, and contract awards.
    - It groups jobs by company, shows how "hot" a company is hiring.
-   - Teams can assign leads, send outreach emails, track activity, and get notifications.
+   - Teams can assign leads, send outreach emails (including **AI draft**), track activity, and get notifications.
+   - Platform admins can add **curated opportunities** and choose which customer workspaces see them (after Radar runs).
 
-Think of it like: **Radar collects raw jobs → Backend cleans and stores them → Frontend shows them nicely.**
+Think of it like: **Radar collects raw jobs → Backend cleans and stores them → Frontend shows them nicely.** Admin-curated signals join the same Opportunities UI after a successful scan.
 
 Live parts:
 
@@ -80,7 +81,7 @@ OpportunityPedia/
 │   │       ├── pages/         <- Login, Overview, Opportunities, Vendors, etc.
 │   │       ├── services/      <- api.ts + one file per feature (auth, radar...)
 │   │       ├── store/         <- Zustand login session + toast + UI
-│   │       ├── components/    <- Sidebar, Topbar, tables, drawers, dialogs
+│   │       ├── components/    <- AppShell, Sidebar, Topbar, AppFooter, tables, drawers, dialogs
 │   │       ├── features/      <- dashboard, opportunities, radar, outreach...
 │   │       └── utils/, hooks/, providers/, config/
 │   ├── vite.config.ts         <- dev server + /api proxy
@@ -160,9 +161,9 @@ There is **no SQLAlchemy and no Supabase JS client**. It uses raw SQL with `psyc
 
 Folders:
 
-- `controllers/` — 8 files: `auth`, `admin`, `access`, `contact`, `op` (opportunities), `radar`, `razorpay`, `workspace`.
-- `services/` — 12 files. Biggest is `op_service.py` (~2563 lines) which builds opportunities, dashboards, search.
-- `repositories/` — 12 files, one per table group. Each opens a connection, runs `%s` parameterized SQL, many do `CREATE TABLE IF NOT EXISTS` to self-heal.
+- `controllers/` — includes `auth`, `admin`, `access`, `contact`, `op`, `radar`, `razorpay`, `workspace`, `curated`, `ai_outreach`.
+- `services/` — includes `op_service`, `radar_service`, `curated_opportunity_service`, `gemini_service`, auth/access/email, etc.
+- `repositories/` — one per table group (incl. `curated_opportunity_repository`). Many do `CREATE TABLE IF NOT EXISTS` to self-heal.
 - `core/` — config, security, rate limit, cache, logging, timeouts, provisioning.
 - `providers/` + `radar/` — external fetching + scoring (see section 7).
 
@@ -214,6 +215,8 @@ That means the anon key cannot read anything. Only the backend connection string
 | `radar_vendors` | Latest snapshot of vendors (contract winners). Same wipe + insert. |
 | `companies` | Shared catalog of companies, classified once (only in migration `04`). `company_type` = `product/service/mixed/unknown`, `tier` = `mnc/tier1/tier2/startup/unknown`. |
 | `app_notifications` | Inbox rows. `type` = `very_hot/assignment/deadline/team/system`. `read_at` null = unread. (only in migration `05`). |
+| `curated_opportunities` | Admin-entered opportunities (commercial or government). Dynamic fields by type (C2C, vendor requirement, partnership, tender, etc.). `status` = `active` \| `archived`. Migrations `06`+. |
+| `curated_opportunity_visibility` | Which customer **workspaces** may see a curated row. `released_at` null = queued; set after that workspace’s **successful Radar run** (migration `07`). |
 | `schema_migrations` | Which migration files already ran. |
 
 Key relationships:
@@ -221,12 +224,14 @@ Key relationships:
 - One workspace owner (`users.id`) → many members (`users.workspace_id`), payments, tokens, tickets, details, signals, outreach, activities, assignments, radar rows, notifications.
 - `user_naics_codes.naics_code → naics_codes.code`.
 - `companies` stands alone (shared cache).
+- `curated_opportunity_visibility.opportunity_id → curated_opportunities.id`; `workspace_id → users.id` (owner).
 
 ### 4.3 Repository files
 
 - `user_repository.py` — find by email/id, insert admin/customer/invited/member, seat count, gov key, activate/remove/restore/purge.
 - `radar_repository.py` — in-memory `_runs` dict for live `running` state + Postgres for history. `replace_user_jobs_and_vendors()` does DELETE + INSERT in one transaction. `query_jobs_page()` does SQL filter/sort/page.
 - `radar_history_repository.py` — durable `radar_runs` insert/complete/list.
+- `curated_opportunity_repository.py` — admin curated CRUD + visibility + `release_pending_for_workspace()`.
 - `opportunity_detail_repository.py`, `company_hiring_repository.py`, `company_catalog_repository.py`, `assignment_repository.py`, `outreach_repository.py`, `notification_repository.py`, `payment_repository.py`, `token_repository.py`, `lead_repository.py`, `naics_repository.py` — each handles its own tables.
 
 ---
@@ -264,6 +269,9 @@ Key relationships:
 
 - Defined in `app/core/provisioning.py`:
   - Plans: `free`, `paid`. `PLAN_SEAT_LIMITS = {free: 2, paid: 5}`.
+  - Free plan is a **2-day trial** (`TRIAL_DAYS=2`, `users.trial_ends_at`). After expiry, login and API access are locked until admin flips plan to `paid`.
+  - Settings → **Plan** shows trial end / time left, seats, and Radar limits (`GET /workspace/plan`).
+  - Demo accounts (`is_demo`) skip the trial clock.
   - Statuses: `pending_password`, `provisioning`, `active`, `paid`, `removed`.
   - Seat roles: `owner`, `member`.
 - Owner invites member: `POST /workspace/team/invite`. Member gets set-password email.
@@ -323,6 +331,13 @@ Key relationships:
 | GET | `/api/v1/admin/payments` | All payments |
 | GET | `/api/v1/admin/leads` | All contact leads |
 | PATCH | `/api/v1/admin/leads/{id}` | Update lead status + notes |
+| GET | `/api/v1/admin/curated-opportunities` | List admin-curated opportunities |
+| POST | `/api/v1/admin/curated-opportunities` | Create curated opportunity + workspace visibility |
+| GET | `/api/v1/admin/curated-opportunities/{id}` | Curated detail |
+| PATCH | `/api/v1/admin/curated-opportunities/{id}` | Edit curated opportunity |
+| PUT | `/api/v1/admin/curated-opportunities/{id}/visibility` | Replace visible workspace list |
+| POST | `/api/v1/admin/curated-opportunities/{id}/archive` | Soft-archive (users stop seeing it) |
+| POST | `/api/v1/admin/gemini/test` | Test platform `GEMINI_API_KEY` (AI outreach drafts) |
 
 **Public (no login):**
 
@@ -350,6 +365,7 @@ Key relationships:
 | Method | Path | What it does |
 |---|---|---|
 | GET | `/api/v1/workspace/team` | List seats + limits |
+| GET | `/api/v1/workspace/plan` | Plan, 2-day trial clock, Radar/seat limits (Settings) |
 | POST | `/api/v1/workspace/team/invite` | Owner invites teammate |
 | DELETE | `/api/v1/workspace/team/{id}` | Owner removes teammate |
 
@@ -358,7 +374,8 @@ Key relationships:
 | Method | Path | What it does |
 |---|---|---|
 | GET | `/api/v1/radar/results` | Old lanes payload (legacy) |
-| GET | `/api/v1/opportunities?...` | Filtered, paginated opportunities (q, temperature, type, industry, country, company_id, detected_within_days, deadline_within_days, sort, page) |
+| GET | `/api/v1/opportunities?...` | Filtered, paginated opportunities (radar + **released** curated government merged when present) |
+| GET | `/api/v1/opportunities/shared?category=` | Admin-curated rows visible to this workspace (`commercial` / `government`; only `released_at` set) |
 | GET | `/api/v1/opportunities/companies` | Company rollup list |
 | GET | `/api/v1/opportunities/companies/{id}/hiring-signal` | Facets + matched count |
 | GET | `/api/v1/opportunities/{id}` | Detail + suggested vendors |
@@ -389,6 +406,7 @@ Key relationships:
 | DELETE | `/api/v1/saved-views/{id}` | 501 |
 | GET | `/api/v1/search?q=` | Global search |
 | POST | `/api/v1/outreach` | Validate → send email → save → activity log |
+| POST | `/api/v1/outreach/ai-draft` | Gemini drafts professional subject + body (never sends; edit then POST `/outreach`) |
 
 **Radar:**
 
@@ -404,10 +422,25 @@ Public (under `SiteLayout`): `/` Home, `/products`, `/products/opportunitypedia`
 
 Auth: `/login`, `/set-password?token=`, `/workspace-setup?email=`, `/get-started` (free signup), `/admin/login`.
 
-Private `/app` (inside `AppProviders` + `RequireUserAuth` + `AppShell` sidebar/topbar):
-`/app/overview`, `/app/opportunities` (+ `:id` drawer), `/app/vendors` (+ `:id` profile), `/app/my-assignments`, `/app/activity`, `/app/settings`.
+Private `/app` (inside `AppProviders` + `RequireUserAuth` + `AppShell`):
+`/app/overview`, `/app/opportunities` (+ `:id` drawer), `/app/vendors` (+ `:id` drawer for curated/shared), `/app/my-assignments`, `/app/activity`, `/app/settings`.
 
-Admin `/admin` (inside `AdminApp`): `/admin/leads`, `/admin/users`.
+**App chrome (`AppShell`):** static sidebar + static topbar + scrollable main + static footer.
+Footer text (centered): `Copyright © 2026 | OpportunityX | All Rights Reserved`.
+Sidebar collapse is a circular chevron on the sidebar/header seam (not a bottom control).
+Account (profile settings, Help & Support, sign out) lives in the sidebar profile menu only — not in the topbar.
+Help & Support is not a separate sidebar nav item.
+
+**Login (`/login`):** password field has show/hide (eye) control; no “Need access?” header link.
+
+**Overview:** primary action button label is **Run** (play icon), not “Run Radar”.
+Category scope tabs: **All / Government / Commercial** (Vendors Soon tab removed).
+
+**Opportunities:** Industry Soon filter removed. Tables use single-line headers, balanced column widths, and truncated cell text with hover tooltip only when ellipsis is active (`TruncatedText`). Long type badges truncate so they do not overlap Detected. Radar-discovered commercial/government rows only — admin handpicked signals live on **Vendors**.
+
+**Vendors:** Lists admin-curated opportunities shared with the workspace (`GET /opportunities/shared`), unlocked after a successful Radar run. Category filter: All / Commercial / Government. Overview **Very Hot** and **Total Opportunities** include released Vendors rows; clicking Very Hot asks Government vs Vendors.
+
+Admin `/admin` (inside `AdminApp`): `/admin/leads`, `/admin/opportunities`, `/admin/users`.
 
 ---
 
@@ -415,6 +448,7 @@ Admin `/admin` (inside `AdminApp`): `/admin/leads`, `/admin/users`.
 
 This is the heart of the product. Simple idea: **fetch jobs from many places, score them, save snapshot, show in UI.**
 
+Admin can also add **curated** opportunities (LinkedIn / manual signals). Those are **not** stored in `radar_jobs` (radar wipes that table). They live in `curated_opportunities` and only appear for a workspace after a **successful Radar run** releases them.
 ### 7.1 Sources — `app/providers/sources/sources.py`
 
 - 72 Greenhouse boards + 11 Lever + 33 Ashby + `sam-gov` = **116 sources**, all `enabled: True`.
@@ -449,7 +483,7 @@ This is the heart of the product. Simple idea: **fetch jobs from many places, sc
 ### 7.4 Run lifecycle — `app/services/radar_service.py` + `radar_controller.py`
 
 ```text
-User clicks "Run Radar"
+User clicks "Run"
   → POST /api/v1/radar/run
   → start_radar_run(): check cooldown + daily cap, create running row, return 202 instantly (button locks)
   → Background task execute_radar_run():
@@ -464,6 +498,7 @@ User clicks "Run Radar"
         8. upsert SAM details into opportunity_details (survives refresh)
         9. persist_company_hiring_signals() → company rollups
        10. fan_out notifications (summary + up to 15 item rows + overflow)
+       11. if run status == ok → release pending curated_opportunity_visibility for this workspace
   → Frontend polls GET /radar/status until running=false, shows toast
 ```
 
@@ -475,7 +510,33 @@ User clicks "Run Radar"
 - `GET /radar/runs` = durable history from `radar_runs` table, newest first.
 - `render.yaml` sets `RADAR_RUN_COOLDOWN_MINUTES=2`, `RADAR_RUNS_PER_DAY=0` for demo (fast re-run). Default code is 6 hours + 2/day because SAM.gov quota is tiny.
 
-### 7.5 Read path — `app/services/op_service.py`
+### 7.5 Curated opportunities (admin-shared signals)
+
+Separate from radar snapshots so they survive wipe/replace:
+
+```text
+Platform admin → /admin/opportunities → + Add Opportunity
+  → Category Commercial | Government → dynamic fields by type
+  → Visible to: multi-select customer workspaces (owners)
+  → Create → rows in curated_opportunities + visibility (released_at = null)
+
+Customer runs Radar successfully
+  → release_pending_for_workspace(workspace_id)
+  → released_at = now()
+
+Customer Opportunities UI
+  → Commercial: company hiring rollups from Radar
+  → Government: radar tenders / procurement notices
+  → Badge: Shared only when viewing curated rows on Vendors
+
+Customer Vendors UI
+  → Admin-curated (handpicked) opportunities released after a successful Radar run
+  → GET /opportunities/shared (optional category=commercial|government)
+```
+
+Only `platform_admin` creates/edits. Customers never create curated rows. No Source / Source URL fields in the form or Overview.
+
+### 7.6 Read path — `app/services/op_service.py`
 
 - `_load(user_id)` loads `radar_jobs` + `radar_vendors`, filters to live collectors, overlays `opportunity_details`, cached per-request.
 - `map_opportunity()` converts DB row → UI object:
@@ -483,10 +544,11 @@ User clicks "Run Radar"
   - `heat → temperature`: `very_hot`, `hot`.
   - Hides raw `provider/url`, builds `viewUrl` via `/open` redirect.
   - Adds SAM facts, contacts, attachments, assignment, outreach state.
-- `list_opportunities()` tries SQL `query_jobs_page()` first, falls back to in-memory filter/sort/paginate.
+- `list_opportunities()` tries SQL `query_jobs_page()` first; when released curated government rows exist, merges in-memory so totals stay correct. Falls back to in-memory filter/sort/paginate on SQL errors.
+- `list_shared_opportunities()` returns released curated rows for the workspace (`category` optional).
 - Dashboards derived from same data: metrics, pipeline, needs-attention (closing → surging → undated → steady), deadlines, surge detection (14-day recent vs prior, ≥5 recent and ≥25% growth).
 - `company_classify_service` labels `companies` catalog out-of-band (Gemini if `GEMINI_API_KEY` set, else heuristic).
-
+- `gemini_service` powers professional **AI outreach drafts** (same platform key; model default `gemini-3.5-flash-lite`).
 ---
 
 ## 8. Environment Variables and Configuration Management
@@ -527,7 +589,7 @@ Copy `backend/.env.example` → `backend/.env` to start.
 | `APP_PUBLIC_URL` | `http://127.0.0.1:8000` | Backend public URL (used in emails/links). |
 | `FRONTEND_PUBLIC_URL` | `APP_PUBLIC_URL` or `http://127.0.0.1:5173` | Where set-password links open. |
 | `RESEND_API_KEY` | empty | Preferred email sender (HTTPS). Get at resend.com. |
-| `EMAIL_FROM` | empty | Sender like `OpportunityPedia <hello@opportunitypedia.com>`. |
+| `EMAIL_FROM` | empty | Verified mailbox like `OpportunityPedia <hello@opportunitypedia.com>`. Invites keep this name; **outreach** overrides the display name to the customer's `company` (same mailbox + Reply-To = user). |
 | `SMTP_HOST/PORT/USER/PASSWORD/FROM/USE_SSL/TIMEOUT_SECONDS` | port `465`, ssl `true`, timeout `8` | Fallback email if Resend is empty. |
 | `RATE_LIMIT_ENABLED` | `true` | Turn spam protection on/off. |
 | `RATE_LIMIT_AUTH/PUBLIC/API_PER_MINUTE` | `20/30/180` | Limits per minute. |
@@ -535,10 +597,13 @@ Copy `backend/.env.example` → `backend/.env` to start.
 | `REQUEST_LOG_ENABLED/LOG_LEVEL` | `true/INFO` | Logging. |
 | `DB_POOL_MIN/MAX_SIZE` | `1/10` | Postgres pool size. `1` worker only (see below). |
 | `USER_AGENT` | `OpportunityPediaRadar/0.1 ...` | Sent to job boards. |
+| `GEMINI_API_KEY` | empty | Platform-wide Google Gemini key. Used for company classify + **AI outreach drafts**. Empty = AI draft disabled. Never put in frontend. |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Gemini model id for generateContent. |
 | `VITE_API_BASE_URL` | `/api/v1` | **Only frontend var.** Overrides backend URL. |
 
 Frontend has **no `.env` file** in the repo. Only `VITE_API_BASE_URL` is read in `src/app/services/api.ts`.
 
+**Gotcha:** Do not define `GEMINI_API_KEY` twice in `.env`. `python-dotenv` keeps the **last** value, so an empty duplicate later in the file clears the key.
 ### 8.2 `render.yaml` (hosting defaults)
 
 - One web service `opportunitypedia-backend`, `runtime: python`, `plan: free`, `rootDir: backend`.
@@ -623,27 +688,41 @@ VITE_API_BASE_URL=https://your-backend/api/v1 npm run build
 ### 9.5 Quick test flow
 
 1. Contact form on marketing site → check `contact_leads` table or `/admin/leads`.
-2. Login admin: `/admin/login` with `ADMIN_EMAIL` → check Users + Leads.
-3. Login demo: `/login` with `DEMO_EMAIL` → goes to `/app/overview`.
-4. Click **Run Radar** → watch `GET /radar/status`, then opportunities appear.
-5. Assign a lead, send outreach, check Activity + Notifications.
+2. Login admin: `/admin/login` with `ADMIN_EMAIL` → Users, Leads, **Opportunities**.
+3. Optional: Admin → Opportunities → **Test Gemini** (needs `GEMINI_API_KEY` in backend `.env`, then restart API).
+4. Admin → **+ Add Opportunity** → pick workspaces → Create (queued until Radar).
+5. Login demo/customer: `/login` → `/app/overview`.
+6. Click **Run** → watch `GET /radar/status` → curated Shared signals appear on **Vendors**.
+7. Open a Vendor opportunity → Send outreach → **Generate with AI** (draft only) → edit → Send.
+8. Assign a lead, check Activity + Notifications.
 
 ---
 
 ## 10. User Roles and Daily Workflow
 
 - **Visitor** → reads marketing, submits `/contact` or `/get-started`.
-- **Free customer** → signup → set password (24h link) → `provisioning` → `active` → login → run radar (limited by cooldown) → assign + outreach.
+- **Free customer** → signup → set password (24h link) → `provisioning` → `active` → login → Run (radar scan, limited by cooldown) → assign + outreach.
 - **Paid customer** → access request → Razorpay order → verify → `paid/active` → same as above with higher seat limit (5 vs 2).
 - **Team member** → owner invites via email → set password → sees owner's workspace data, can assign to self, cannot invite others.
-- **Platform admin** → manages users, NAICS coverage, payments, leads; can activate/remove/restore, change plans.
+- **Platform admin** → manages users, NAICS coverage, payments, leads, **curated opportunities** + Gemini test; can activate/remove/restore, change plans.
 
 Outreach flow:
 
 ```text
-Opportunity → EmailComposer → POST /outreach → validate → send via Resend (or SMTP) → save outreach_messages → log opportunity_activities → notify team
+Opportunity → EmailComposer
+  → optional: Generate with AI → POST /outreach/ai-draft → fill subject/body
+  → edit → POST /outreach → validate → send via Resend (or SMTP)
+    (From display = customer company; mailbox = EMAIL_FROM; Reply-To = sender)
+  → save outreach_messages → log opportunity_activities → notify team
 ```
 
+Curated flow:
+
+```text
+Admin creates curated opp + visibility → released_at null
+  → Customer successful Radar run → released_at set
+  → Opportunities (Radar commercial / government) and Vendors (curated Shared)
+```
 ---
 
 ## 11. Important Limits and Gotchas
@@ -654,6 +733,8 @@ Opportunity → EmailComposer → POST /outreach → validate → send via Resen
 - **501 stubs:** saved-notes, saved-views create/delete, `team/ownership` are placeholders returning `501` or empty. Frontend handles them as "not available yet".
 - **Single session:** login bumps `session_version`. Old tabs get "Signed in elsewhere".
 - **Email:** Resend preferred. Without `RESEND_API_KEY` or SMTP, setup emails return `502/503` and `setup_url` is returned directly (dev fallback).
+- **Gemini / AI draft:** Needs `GEMINI_API_KEY`. Admin **Test Gemini** on `/admin/opportunities` before users rely on Generate with AI. Duplicate empty `GEMINI_API_KEY=` in `.env` clears the key.
+- **Curated vs radar:** Curated rows are never written to `radar_jobs`. They appear only after a successful Radar run releases visibility for that workspace.
 - **Docker:** `python:3.12-slim`, healthcheck `curl /health`, same single-worker command.
 
 ---
@@ -664,8 +745,10 @@ Opportunity → EmailComposer → POST /outreach → validate → send via Resen
 - Auth problem? → `core/security.py`, `services/auth_service.py`, `services/account_service.py`, `api/deps.py`.
 - Radar not running? → `services/radar_service.py`, `repositories/radar_repository.py`, `providers/collectors/collectors.py`, `core/config.py` (cooldown vars).
 - Empty dashboard? → `services/op_service.py` (`_load`, `map_opportunity`, rollups).
+- Curated / Shared signals? → `services/curated_opportunity_service.py`, `repositories/curated_opportunity_repository.py`, `controllers/curated_controller.py`, admin page `AdminOpportunitiesPage.tsx`.
+- AI email draft? → `services/gemini_service.py`, `controllers/ai_outreach_controller.py`, `EmailComposer.tsx` (Generate with AI).
 - Frontend API error? → `frontend/src/app/services/api.ts` (base URL, token, error map).
-- DB shape? → `supabase/schema.sql` first, then `supabase/migrations/`.
+- DB shape? → `supabase/schema.sql` first, then `supabase/migrations/` (incl. `06` curated, `07` release_on_radar).
 - Hosting? → `render.yaml` (backend), `frontend/vercel.json` (frontend), `backend/Dockerfile`.
 
 ---
@@ -675,8 +758,8 @@ Opportunity → EmailComposer → POST /outreach → validate → send via Resen
 - **Frontend:** React 19, React Router 7, TanStack Query 5, Zustand 5, Axios, Zod + React Hook Form, Radix UI, Tailwind 4, Vite 8, TypeScript.
 - **Backend:** FastAPI, Uvicorn, psycopg + psycopg_pool, python-dotenv, bcrypt, PyJWT, Razorpay, httpx, email-validator, Pydantic.
 - **Database:** Supabase Postgres, raw SQL, RLS locked down, migrations in `supabase/migrations/`.
-- **Hosting:** Vercel (frontend), Render/Railway (backend), Supabase (DB), Resend/SMTP (email), Razorpay (payments), SAM.gov + Greenhouse/Lever/Ashby (data).
+- **Hosting:** Vercel (frontend), Render/Railway (backend), Supabase (DB), Resend/SMTP (email), Razorpay (payments), SAM.gov + Greenhouse/Lever/Ashby (data), Google Gemini (classify + AI outreach drafts).
 
 ---
 
-*Generated after full codebase exploration on 2026-09-15. For setup details also see `supabase/SETUP.md` and `backend/.env.example`.*
+*Updated 2026-09-17 for curated opportunities, Radar release gating, and AI outreach drafts. For setup details also see `supabase/SETUP.md` and `backend/.env.example`.*

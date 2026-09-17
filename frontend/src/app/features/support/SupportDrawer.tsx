@@ -1,4 +1,4 @@
-import { LifeBuoy, Mail, Phone, X } from 'lucide-react'
+import { LifeBuoy, Mail, X } from 'lucide-react'
 
 import { Drawer, DrawerClose } from '@/app/components/common/Drawer'
 import { SUPPORT_CONTACTS } from '@/app/config/supportContacts'
@@ -48,20 +48,13 @@ export function SupportDrawer() {
               {contact.role ? (
                 <p className="text-[12.5px] text-ink-muted">{contact.role}</p>
               ) : null}
-              <div className="mt-2.5 space-y-1.5">
+              <div className="mt-2.5">
                 <a
                   href={`mailto:${contact.email}`}
                   className="flex items-center gap-2 text-[13px] text-signal-800 hover:underline"
                 >
                   <Mail className="size-3.5 shrink-0" aria-hidden />
                   <span className="min-w-0 truncate">{contact.email}</span>
-                </a>
-                <a
-                  href={`tel:${contact.phoneDigits}`}
-                  className="flex items-center gap-2 text-[13px] text-signal-800 hover:underline"
-                >
-                  <Phone className="size-3.5 shrink-0" aria-hidden />
-                  <span>{contact.phoneDisplay}</span>
                 </a>
               </div>
             </li>

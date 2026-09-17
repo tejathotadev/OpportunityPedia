@@ -14,8 +14,10 @@ from app.core.provisioning import (
     STATUS_PENDING_PASSWORD,
     STATUS_PROVISIONING,
     STATUS_REMOVED,
+    TRIAL_ENDED_DETAIL,
     post_password_next,
     post_password_status,
+    trial_is_expired,
 )
 from app.core.security import (
     create_access_token,
@@ -167,8 +169,9 @@ def login_customer(email: str, password: str) -> dict:
 
     workspace_id = user_repository.resolve_workspace_id(user) or int(user["id"])
     # Members need an active owner workspace.
+    owner = user
     if workspace_id != int(user["id"]):
-        owner = user_repository.find_by_id(workspace_id)
+        owner = user_repository.find_by_id(workspace_id) or user
         if not owner or str(owner.get("status") or "") == STATUS_REMOVED:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -179,6 +182,12 @@ def login_customer(email: str, password: str) -> dict:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Workspace is not active yet",
             )
+
+    if trial_is_expired(owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=TRIAL_ENDED_DETAIL,
+        )
 
     session_version = user_repository.bump_session_version(int(user["id"]))
     token = create_access_token(

@@ -9,7 +9,6 @@ import {
   OverviewPage,
   SettingsPage,
   TeamActivityPage,
-  VendorProfilePage,
   VendorsPage,
 } from '@/app/pages/lazy'
 import { SiteLayout } from '@/marketing/components/layout/SiteLayout'
@@ -96,8 +95,11 @@ export const router = createBrowserRouter([
         element: <OpportunitiesPage />,
         children: [{ path: ':id', element: <OpportunityRouteDrawer /> }],
       },
-      { path: 'vendors', element: <VendorsPage /> },
-      { path: 'vendors/:id', element: <VendorProfilePage /> },
+      {
+        path: 'vendors',
+        element: <VendorsPage />,
+        children: [{ path: ':id', element: <OpportunityRouteDrawer /> }],
+      },
       { path: 'my-assignments', element: <MyAssignmentsPage /> },
       { path: 'activity', element: <TeamActivityPage /> },
       { path: 'settings', element: <SettingsPage /> },

@@ -1,21 +1,25 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { OpportunityDrawer } from './OpportunityDrawer'
 
 /**
- * Renders the detail panel for `/app/opportunities/:id`. Because the route is
- * nested under the list, the table stays mounted behind the panel and a direct
- * link still opens the opportunity on its own.
+ * Detail panel for `/app/opportunities/:id` and `/app/vendors/:id`.
+ * Nested under the list so the table stays mounted behind the panel.
  */
 export function OpportunityRouteDrawer() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const listPath = location.pathname.startsWith('/app/vendors')
+    ? '/app/vendors'
+    : '/app/opportunities'
 
   return (
     <OpportunityDrawer
       opportunityId={id ?? null}
       open={Boolean(id)}
-      onClose={() => navigate({ pathname: '/app/opportunities', search: window.location.search })}
+      onClose={() => navigate({ pathname: listPath, search: window.location.search })}
     />
   )
 }

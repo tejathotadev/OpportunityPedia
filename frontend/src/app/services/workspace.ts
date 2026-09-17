@@ -43,6 +43,39 @@ export async function listWorkspaceTeam(): Promise<WorkspaceTeam> {
   return data
 }
 
+export interface WorkspacePlanTrial {
+  applies: boolean
+  days: number | null
+  ends_at: string | null
+  seconds_remaining: number | null
+  expired: boolean
+}
+
+export interface WorkspacePlanSummary {
+  workspace_id: number | string
+  plan: string
+  is_demo: boolean
+  seat_limit: number
+  seats_used: number
+  seats_remaining: number
+  trial: WorkspacePlanTrial
+  limits: {
+    radar_runs_per_day: number
+    radar_cooldown_minutes: number
+    team_seats: number
+  }
+  paid_comparison: {
+    plan: string
+    seat_limit: number
+  }
+}
+
+/** `GET /workspace/plan` — trial clock + limits for Settings. */
+export async function getWorkspacePlan(): Promise<WorkspacePlanSummary> {
+  const { data } = await api.get<WorkspacePlanSummary>('/workspace/plan')
+  return data
+}
+
 /** `POST /workspace/team/invite` — owner invites a teammate (set-password email). */
 export async function inviteWorkspaceMember(
   body: InviteMemberInput,

@@ -29,7 +29,12 @@ from app.controllers.ai_outreach_controller import (
     admin_test_gemini,
     generate_outreach_ai_draft,
 )
-from app.controllers.workspace_controller import invite_member, list_team, remove_member
+from app.controllers.workspace_controller import (
+    get_plan,
+    invite_member,
+    list_team,
+    remove_member,
+)
 from app.controllers.auth_controller import (
     customer_login,
     customer_me,
@@ -92,6 +97,7 @@ api_router.add_api_route(Routes.AUTH_SET_PASSWORD, set_password, methods=["POST"
 api_router.add_api_route(Routes.AUTH_RESEND_SETUP, resend_setup, methods=["POST"])
 api_router.add_api_route(Routes.AUTH_PROVISIONING_STATUS, provisioning_status, methods=["GET"])
 api_router.add_api_route(Routes.WORKSPACE_TEAM, list_team, methods=["GET"])
+api_router.add_api_route(Routes.WORKSPACE_PLAN, get_plan, methods=["GET"])
 api_router.add_api_route(Routes.WORKSPACE_TEAM_INVITE, invite_member, methods=["POST"])
 api_router.add_api_route(Routes.WORKSPACE_TEAM_MEMBER, remove_member, methods=["DELETE"])
 api_router.add_api_route(Routes.RADAR_RESULTS, latest_results, methods=["GET"])

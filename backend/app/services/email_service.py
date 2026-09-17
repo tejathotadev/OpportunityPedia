@@ -32,6 +32,36 @@ def _from_address() -> str:
     return settings.EMAIL_FROM or settings.SMTP_FROM or settings.SMTP_USER or DEFAULT_FROM
 
 
+def _mailbox_email(raw: str) -> str:
+    """Extract the bare email from `Name <email>` or a plain address."""
+    text = (raw or "").strip()
+    if "<" in text and ">" in text:
+        return text[text.rfind("<") + 1 : text.rfind(">")].strip()
+    return text
+
+
+def format_from_address(*, display_name: str | None = None) -> str:
+    """Platform mailbox with an optional customer-facing display name.
+
+    Delivery still uses the verified EMAIL_FROM / SMTP address; only the
+    visible From name changes (e.g. customer company instead of OpportunityPedia).
+    """
+    base = _from_address()
+    email = _mailbox_email(base)
+    if not email:
+        return base
+    label = (display_name or "").strip()
+    if not label:
+        return base
+    # Strip characters that break RFC 5322 display-name formatting.
+    safe = " ".join(label.replace('"', "").replace("\\", "").split())
+    if not safe:
+        return base
+    if any(ch in safe for ch in (",", "<", ">", "@")):
+        return f'"{safe}" <{email}>'
+    return f"{safe} <{email}>"
+
+
 def _smtp_timeout() -> float:
     return max(1.0, float(SMTP_TIMEOUT_SECONDS))
 
@@ -43,9 +73,10 @@ def _send_via_resend(
     text: str,
     html: str | None = None,
     reply_to: str | None = None,
+    from_address: str | None = None,
 ) -> None:
     payload: dict = {
-        "from": _from_address(),
+        "from": from_address or _from_address(),
         "to": [to_email],
         "subject": subject,
         "text": text,
@@ -98,8 +129,10 @@ def _deliver(
     text: str,
     html: str | None = None,
     reply_to: str | None = None,
+    from_address: str | None = None,
 ) -> None:
     """Prefer Resend (HTTPS); fall back to SMTP when Resend is not configured."""
+    sender = from_address or _from_address()
     if resend_configured():
         _send_via_resend(
             to_email=to_email,
@@ -107,6 +140,7 @@ def _deliver(
             text=text,
             html=html,
             reply_to=reply_to,
+            from_address=sender,
         )
         return
     if not smtp_configured():
@@ -114,7 +148,7 @@ def _deliver(
 
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = _from_address()
+    message["From"] = sender
     message["To"] = to_email
     if reply_to:
         message["Reply-To"] = reply_to
@@ -195,14 +229,20 @@ def send_password_setup(
         logger.warning("password-setup email failed to %s: %s", to_email, exc)
         return False, str(exc)[:300]
 
+
 def send_outreach_email(
     *,
     to_email: str,
     subject: str,
     body: str,
     reply_to: str | None = None,
+    from_display_name: str | None = None,
 ) -> None:
-    """Send a composed outreach message. Raises on delivery failure."""
+    """Send a composed outreach message. Raises on delivery failure.
+
+    ``from_display_name`` is typically the customer's company so inboxes show
+    their brand while mail still leaves from the verified platform mailbox.
+    """
     if not email_configured():
         raise RuntimeError("Email is not configured (set RESEND_API_KEY or SMTP_*)")
     _deliver(
@@ -211,4 +251,5 @@ def send_outreach_email(
         text=body,
         html=None,
         reply_to=reply_to,
+        from_address=format_from_address(display_name=from_display_name),
     )

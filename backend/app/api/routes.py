@@ -42,6 +42,7 @@ class Routes:
     WORKSPACE_TEAM = f"{API_PREFIX}/workspace/team"
     WORKSPACE_TEAM_INVITE = f"{API_PREFIX}/workspace/team/invite"
     WORKSPACE_TEAM_MEMBER = f"{API_PREFIX}/workspace/team/{{member_id}}"
+    WORKSPACE_PLAN = f"{API_PREFIX}/workspace/plan"
 
     # OP frontend read API. Paths match OP's src/services/*.ts.
     OP_OPPORTUNITIES = f"{API_PREFIX}/opportunities"
