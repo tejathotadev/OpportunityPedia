@@ -89,3 +89,67 @@ export async function removeWorkspaceMember(memberId: number | string): Promise<
   const { data } = await api.delete<WorkspaceTeam>(`/workspace/team/${memberId}`)
   return data
 }
+
+export interface WorkspaceSmtpSettings {
+  configured: boolean
+  enabled: boolean
+  can_manage: boolean
+  host: string | null
+  port: number
+  username: string | null
+  from_email: string | null
+  from_name: string | null
+  use_ssl: boolean
+  has_password: boolean
+  updated_at: string | null
+  using_platform_fallback: boolean
+}
+
+export interface WorkspaceSmtpInput {
+  host: string
+  port: number
+  username: string
+  /** Leave empty to keep the saved password. */
+  password?: string
+  from_email: string
+  from_name?: string
+  use_ssl: boolean
+  enabled: boolean
+}
+
+export interface WorkspaceSmtpTestInput {
+  to_email?: string
+  host?: string
+  port?: number
+  username?: string
+  password?: string
+  from_email?: string
+  from_name?: string
+  use_ssl?: boolean
+}
+
+/** `GET /workspace/smtp` — company SMTP status (no password). */
+export async function getWorkspaceSmtp(): Promise<WorkspaceSmtpSettings> {
+  const { data } = await api.get<WorkspaceSmtpSettings>('/workspace/smtp')
+  return data
+}
+
+/** `PUT /workspace/smtp` — owner saves company SMTP for outreach. */
+export async function saveWorkspaceSmtp(body: WorkspaceSmtpInput): Promise<WorkspaceSmtpSettings> {
+  const { data } = await api.put<WorkspaceSmtpSettings>('/workspace/smtp', body)
+  return data
+}
+
+/** `DELETE /workspace/smtp` — owner clears company SMTP (fallback to platform). */
+export async function clearWorkspaceSmtp(): Promise<WorkspaceSmtpSettings> {
+  const { data } = await api.delete<WorkspaceSmtpSettings>('/workspace/smtp')
+  return data
+}
+
+/** `POST /workspace/smtp/test` — owner sends a test message. */
+export async function testWorkspaceSmtp(
+  body: WorkspaceSmtpTestInput = {},
+): Promise<{ ok: boolean; to_email: string }> {
+  const { data } = await api.post<{ ok: boolean; to_email: string }>('/workspace/smtp/test', body)
+  return data
+}

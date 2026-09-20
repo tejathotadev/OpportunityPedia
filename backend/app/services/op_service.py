@@ -2547,14 +2547,19 @@ def send_outreach(*, user_id: int, payload: dict[str, Any], actor_id: int | None
     if not sender_email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sender email required")
 
-    if not email_service.email_configured():
+    from app.services import workspace_service
+
+    workspace_id = user_repository.resolve_workspace_id(user) or user_id
+    smtp_override = workspace_service.load_outreach_smtp(workspace_id)
+
+    if not smtp_override and not email_service.email_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Email delivery is not configured",
+            detail="Email delivery is not configured. Add SMTP in Settings → Email.",
         )
 
-    # Inbox "From" shows the customer's company (sold product), not OpportunityPedia.
-    # Mail still sends from the verified platform mailbox; Reply-To is the user.
+    # Prefer workspace company SMTP when configured; else platform mailbox
+    # with company display name + Reply-To = user.
     from_display = sender_company or sender_name
 
     try:
@@ -2564,6 +2569,7 @@ def send_outreach(*, user_id: int, payload: dict[str, Any], actor_id: int | None
             body=body,
             reply_to=sender_email,
             from_display_name=from_display,
+            smtp_override=smtp_override,
         )
         send_status = "sent"
         error_detail = None

@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/app/components/common/Button'
 import { PageHeader } from '@/app/components/layout/PageHeader'
+import { EmailSmtpSettingsPanel } from '@/app/features/settings/EmailSmtpSettingsPanel'
 import { PlanSettingsPanel } from '@/app/features/settings/PlanSettingsPanel'
 import { ProfileSettingsPanel } from '@/app/features/settings/ProfileSettingsPanel'
 import { TeamSettingsPanel } from '@/app/features/settings/TeamSettingsPanel'
@@ -13,13 +14,14 @@ import { CUSTOMER_HOME, markCustomerSignedOut } from '@/app/utils/authRedirect'
 const SECTIONS = [
   { id: 'profile', label: 'Profile' },
   { id: 'team', label: 'Team' },
+  { id: 'email', label: 'Email' },
   { id: 'plan', label: 'Plan' },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
 
 function isSectionId(value: string | null): value is SectionId {
-  return value === 'profile' || value === 'team' || value === 'plan'
+  return value === 'profile' || value === 'team' || value === 'email' || value === 'plan'
 }
 
 export function SettingsPage() {
@@ -40,7 +42,7 @@ export function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Settings"
-        subtitle="Your profile, team, and plan limits."
+        subtitle="Your profile, team, email delivery, and plan limits."
         actions={
           <Button type="button" variant="secondary" size="sm" onClick={signOut}>
             Sign out
@@ -80,6 +82,7 @@ export function SettingsPage() {
         <div className="min-w-0 space-y-4">
           {section === 'profile' && <ProfileSettingsPanel />}
           {section === 'team' && <TeamSettingsPanel />}
+          {section === 'email' && <EmailSmtpSettingsPanel />}
           {section === 'plan' && <PlanSettingsPanel />}
         </div>
       </div>

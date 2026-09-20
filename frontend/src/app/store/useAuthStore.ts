@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 /** Public profile fields returned by `/auth/login` and `/admin/login`. */
 export interface AuthProfile {
@@ -31,9 +31,17 @@ interface AuthState {
   clearAdminSession: () => void
 }
 
+/** Drop legacy localStorage sessions so closing the browser always requires login. */
+try {
+  localStorage.removeItem('op-auth')
+} catch {
+  // Ignore private-mode / unavailable storage.
+}
+
 /**
- * Persisted sessions for the product (`user`) and the hidden admin console
- * (`admin`). Tokens are sent as Bearer headers; never put secrets in source.
+ * Session-only auth for the product (`user`) and admin console (`admin`).
+ * Uses sessionStorage so tokens are cleared when the browser/tab session ends.
+ * Tokens are sent as Bearer headers; never put secrets in source.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -50,6 +58,9 @@ export const useAuthStore = create<AuthState>()(
       setAdminSession: (admin) => set({ admin }),
       clearAdminSession: () => set({ admin: null }),
     }),
-    { name: 'op-auth' },
+    {
+      name: 'op-auth',
+      storage: createJSONStorage(() => sessionStorage),
+    },
   ),
 )

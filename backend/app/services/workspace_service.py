@@ -205,3 +205,200 @@ def remove_member(*, actor: dict, member_id: int) -> dict:
 
     user_repository.hard_delete_customer(member_id)
     return list_team(actor=actor)
+
+
+def _smtp_public(row: dict | None, *, can_manage: bool) -> dict:
+    """Safe SMTP status for the UI — never includes the password."""
+    if not row:
+        return {
+            "configured": False,
+            "enabled": False,
+            "can_manage": can_manage,
+            "host": None,
+            "port": 587,
+            "username": None,
+            "from_email": None,
+            "from_name": None,
+            "use_ssl": False,
+            "has_password": False,
+            "updated_at": None,
+            "using_platform_fallback": True,
+        }
+    return {
+        "configured": True,
+        "enabled": bool(row.get("enabled")),
+        "can_manage": can_manage,
+        "host": row.get("host"),
+        "port": int(row.get("port") or 587),
+        "username": row.get("username"),
+        "from_email": row.get("from_email"),
+        "from_name": row.get("from_name"),
+        "use_ssl": bool(row.get("use_ssl")),
+        "has_password": bool(row.get("password_encrypted")),
+        "updated_at": row.get("updated_at"),
+        "using_platform_fallback": not bool(row.get("enabled")),
+    }
+
+
+def get_smtp_settings(*, actor: dict) -> dict:
+    from app.repositories import workspace_smtp_repository
+
+    actor_id = int(actor["id"])
+    user = user_repository.find_by_id(actor_id)
+    if not user or user.get("role") != "customer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+    workspace_id = user_repository.resolve_workspace_id(user) or actor_id
+    can_manage = (user.get("seat_role") or SEAT_ROLE_OWNER).strip().lower() == SEAT_ROLE_OWNER
+    row = workspace_smtp_repository.get_for_workspace(workspace_id)
+    return _smtp_public(row, can_manage=can_manage)
+
+
+def upsert_smtp_settings(*, actor: dict, body: dict) -> dict:
+    from app.core.security import encrypt_secret
+    from app.repositories import workspace_smtp_repository
+
+    workspace_id, _owner = _require_owner(actor)
+    host = str(body.get("host") or "").strip()
+    username = str(body.get("username") or "").strip()
+    from_email = str(body.get("from_email") or "").strip()
+    from_name = str(body.get("from_name") or "").strip() or None
+    password = str(body.get("password") or "")
+    try:
+        port = int(body.get("port") or 587)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid port") from exc
+    use_ssl = bool(body.get("use_ssl"))
+    enabled = bool(body.get("enabled", True))
+
+    if not host:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SMTP host is required")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SMTP username is required")
+    if not from_email or "@" not in from_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Valid from email is required")
+    if port < 1 or port > 65535:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid port")
+
+    existing = workspace_smtp_repository.get_for_workspace(workspace_id)
+    if password.strip():
+        password_encrypted = encrypt_secret(password.strip())
+    elif existing and existing.get("password_encrypted"):
+        password_encrypted = existing["password_encrypted"]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="SMTP password is required",
+        )
+
+    row = workspace_smtp_repository.upsert(
+        workspace_id=workspace_id,
+        host=host,
+        port=port,
+        username=username,
+        password_encrypted=password_encrypted,
+        from_email=from_email,
+        from_name=from_name,
+        use_ssl=use_ssl,
+        enabled=enabled,
+        updated_by=int(actor["id"]),
+    )
+    return _smtp_public(row, can_manage=True)
+
+
+def clear_smtp_settings(*, actor: dict) -> dict:
+    from app.repositories import workspace_smtp_repository
+
+    workspace_id, _owner = _require_owner(actor)
+    workspace_smtp_repository.delete_for_workspace(workspace_id)
+    return _smtp_public(None, can_manage=True)
+
+
+def test_smtp_settings(*, actor: dict, body: dict | None = None) -> dict:
+    """Send a test email using saved settings, or the payload if provided."""
+    from app.core.security import decrypt_secret
+    from app.repositories import workspace_smtp_repository
+    from app.services import email_service
+
+    workspace_id, owner = _require_owner(actor)
+    body = body or {}
+    to_email = str(body.get("to_email") or owner.get("email") or "").strip()
+    if not to_email or "@" not in to_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Valid test recipient required")
+
+    # Prefer live form values when password is included; else use saved row.
+    password = str(body.get("password") or "").strip()
+    if password:
+        host = str(body.get("host") or "").strip()
+        username = str(body.get("username") or "").strip()
+        from_email = str(body.get("from_email") or "").strip()
+        from_name = str(body.get("from_name") or "").strip() or None
+        try:
+            port = int(body.get("port") or 587)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid port") from exc
+        use_ssl = bool(body.get("use_ssl"))
+    else:
+        row = workspace_smtp_repository.get_for_workspace(workspace_id)
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Save SMTP settings before testing, or enter a password to test now",
+            )
+        try:
+            password = decrypt_secret(row["password_encrypted"])
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Stored SMTP password could not be read. Save settings again.",
+            ) from exc
+        host = row["host"]
+        username = row["username"]
+        from_email = row["from_email"]
+        from_name = row.get("from_name")
+        port = int(row["port"])
+        use_ssl = bool(row.get("use_ssl"))
+
+    if not host or not username or not from_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete SMTP settings")
+
+    try:
+        email_service.send_test_via_smtp(
+            to_email=to_email,
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            from_email=from_email,
+            from_name=from_name,
+            use_ssl=use_ssl,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"SMTP test failed: {str(exc)[:200]}",
+        ) from exc
+
+    return {"ok": True, "to_email": to_email}
+
+
+def load_outreach_smtp(workspace_id: int) -> dict | None:
+    """Return decrypted SMTP credentials for outreach, or None to use platform mail."""
+    from app.core.security import decrypt_secret
+    from app.repositories import workspace_smtp_repository
+
+    row = workspace_smtp_repository.get_for_workspace(workspace_id)
+    if not row or not row.get("enabled"):
+        return None
+    try:
+        password = decrypt_secret(row["password_encrypted"])
+    except ValueError:
+        return None
+    return {
+        "host": row["host"],
+        "port": int(row["port"]),
+        "username": row["username"],
+        "password": password,
+        "from_email": row["from_email"],
+        "from_name": row.get("from_name"),
+        "use_ssl": bool(row.get("use_ssl")),
+    }

@@ -30,10 +30,14 @@ from app.controllers.ai_outreach_controller import (
     generate_outreach_ai_draft,
 )
 from app.controllers.workspace_controller import (
+    delete_smtp,
     get_plan,
+    get_smtp,
     invite_member,
     list_team,
+    put_smtp,
     remove_member,
+    test_smtp,
 )
 from app.controllers.auth_controller import (
     customer_login,
@@ -100,6 +104,10 @@ api_router.add_api_route(Routes.WORKSPACE_TEAM, list_team, methods=["GET"])
 api_router.add_api_route(Routes.WORKSPACE_PLAN, get_plan, methods=["GET"])
 api_router.add_api_route(Routes.WORKSPACE_TEAM_INVITE, invite_member, methods=["POST"])
 api_router.add_api_route(Routes.WORKSPACE_TEAM_MEMBER, remove_member, methods=["DELETE"])
+api_router.add_api_route(Routes.WORKSPACE_SMTP, get_smtp, methods=["GET"])
+api_router.add_api_route(Routes.WORKSPACE_SMTP, put_smtp, methods=["PUT"])
+api_router.add_api_route(Routes.WORKSPACE_SMTP, delete_smtp, methods=["DELETE"])
+api_router.add_api_route(Routes.WORKSPACE_SMTP_TEST, test_smtp, methods=["POST"])
 api_router.add_api_route(Routes.RADAR_RESULTS, latest_results, methods=["GET"])
 
 # OP frontend read API.

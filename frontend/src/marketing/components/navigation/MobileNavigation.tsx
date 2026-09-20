@@ -100,9 +100,6 @@ export function MobileNavigation({ open, onClose }: MobileNavigationProps) {
         </ul>
 
         <div className="mt-8 grid gap-3">
-          <LinkButton to="/login" variant="secondary" size="lg" onClick={onClose}>
-            Sign in
-          </LinkButton>
           <LinkButton
             to="/contact"
             variant="primary"

@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>OpportunityPedia Brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #f7f7f2;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        color: #111827;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .paper {
+        background: #f7f7f2;
+      }
+      .forest {
+        background: #12372a;
+        color: #f7f7f2;
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        opacity: 0.45;
+        background-image: linear-gradient(to right, rgba(18, 55, 42, 0.08) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(18, 55, 42, 0.08) 1px, transparent 1px);
+        background-size: 72px 72px;
+        pointer-events: none;
+      }
+      .grid-light {
+        opacity: 0.08;
+        background-image: linear-gradient(to right, #fff 1px, transparent 1px),
+          linear-gradient(to bottom, #fff 1px, transparent 1px);
+      }
+      .scene-inner {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 96px 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .label {
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #12372a;
+      }
+      .forest .label {
+        color: rgba(247, 247, 242, 0.55);
+      }
+      .display {
+        margin-top: 28px;
+        max-width: 15ch;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 84px;
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: #111827;
+      }
+      .lead {
+        margin-top: 28px;
+        max-width: 28ch;
+        font-size: 28px;
+        line-height: 1.45;
+        color: #475569;
+      }
+      .panel {
+        width: 920px;
+        border: 1px solid #e7e9e4;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 24px 60px rgba(17, 24, 39, 0.08);
+        padding: 36px 40px;
+      }
+      .panel-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #111827;
+      }
+      .panel-sub {
+        margin-top: 8px;
+        font-size: 18px;
+        color: #64748b;
+      }
+      .run-row {
+        margin-top: 28px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .run-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 52px;
+        padding: 0 22px;
+        border-radius: 999px;
+        background: #0d2a20;
+        color: #fafaf6;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .run-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #21805d;
+      }
+      .cursor {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid #12372a;
+        background: rgba(33, 128, 93, 0.25);
+      }
+      .stages {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin-top: 36px;
+      }
+      .stage {
+        border-top: 1px solid #e7e9e4;
+        padding-top: 22px;
+      }
+      .stage-title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #12372a;
+      }
+      .stage-body {
+        margin-top: 12px;
+        font-size: 20px;
+        line-height: 1.4;
+        color: #475569;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 40px;
+        max-width: 980px;
+      }
+      .card {
+        border: 1px solid #e7e9e4;
+        border-radius: 16px;
+        background: #fff;
+        padding: 22px 24px;
+        box-shadow: 0 12px 30px rgba(17, 24, 39, 0.06);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #fdf3f0;
+        color: #b0301d;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .card-title {
+        margin-top: 14px;
+        font-size: 24px;
+        font-weight: 650;
+        color: #111827;
+      }
+      .card-meta {
+        margin-top: 8px;
+        font-size: 16px;
+        color: #64748b;
+      }
+      .outro-title {
+        margin-top: 18px;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 72px;
+        line-height: 1.05;
+        color: #ffffff;
+      }
+      .outro-lead {
+        margin-top: 22px;
+        max-width: 22ch;
+        font-size: 28px;
+        line-height: 1.4;
+        color: rgba(247, 247, 242, 0.65);
+      }
+      .cta {
+        margin-top: 36px;
+        display: inline-flex;
+        align-items: center;
+        height: 54px;
+        padding: 0 26px;
+        border-radius: 999px;
+        background: #f7f7f2;
+        color: #12372a;
+        font-size: 18px;
+        font-weight: 650;
+      }
+      .layout-split {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 56px;
+        align-items: center;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="22"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Scene 1: Hook 0–5s -->
+      <section
+        id="scene-hook"
+        class="clip paper"
+        data-start="0"
+        data-duration="5.2"
+        data-track-index="0"
+        data-layout-allow-overlap
+      >
+        <div class="grid"></div>
+        <div class="scene-inner">
+          <p id="hook-label" class="label">OpportunityX</p>
+          <h1 id="hook-title" class="display">We make opportunity easier to see.</h1>
+          <p id="hook-lead" class="lead">Built for teams that need to move before the opportunity disappears.</p>
+        </div>
+      </section>
+
+      <!-- Scene 2: Radar 5–11s -->
+      <section
+        id="scene-radar"
+        class="clip paper"
+        data-start="4.8"
+        data-duration="6.4"
+        data-track-index="0"
+        data-layout-allow-overlap
+      >
+        <div class="grid"></div>
+        <div class="scene-inner">
+          <div class="layout-split">
+            <div>
+              <p id="radar-label" class="label">Overview</p>
+              <h2 id="radar-title" class="display" style="font-size: 64px; max-width: 12ch">
+                One click. Fresh signals.
+              </h2>
+              <p id="radar-lead" class="lead">Scan job boards and government contracts with Radar.</p>
+            </div>
+            <div id="radar-panel" class="panel">
+              <p class="panel-title">OpportunityPedia · Overview</p>
+              <p class="panel-sub">All · Government · Commercial</p>
+              <div class="run-row">
+                <div id="run-btn" class="run-btn"><span class="run-dot"></span> Run</div>
+                <div id="cursor" class="cursor"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 3: Signals 11–17.5s -->
+      <section
+        id="scene-signals"
+        class="clip paper"
+        data-start="10.8"
+        data-duration="7"
+        data-track-index="0"
+        data-layout-allow-overlap
+      >
+        <div class="grid"></div>
+        <div class="scene-inner">
+          <p id="sig-label" class="label">How OpportunityPedia helps</p>
+          <h2 id="sig-title" class="display" style="font-size: 64px; max-width: 14ch">
+            Discover. Prioritize. Act.
+          </h2>
+          <div class="stages">
+            <div id="stage-1" class="stage">
+              <p class="stage-title">Discover</p>
+              <p class="stage-body">Radar finds commercial hiring and government tenders.</p>
+            </div>
+            <div id="stage-2" class="stage">
+              <p class="stage-title">Prioritize</p>
+              <p class="stage-body">Very Hot signals rise so your team knows where to look.</p>
+            </div>
+            <div id="stage-3" class="stage">
+              <p class="stage-title">Act</p>
+              <p class="stage-body">Assign leads and send outreach — including AI drafts.</p>
+            </div>
+          </div>
+          <div class="cards">
+            <div id="card-1" class="card">
+              <span class="badge">Very Hot</span>
+              <p class="card-title">Government tender</p>
+              <p class="card-meta">SAM.gov · staffing signal</p>
+            </div>
+            <div id="card-2" class="card">
+              <span class="badge">Very Hot</span>
+              <p class="card-title">Commercial hiring surge</p>
+              <p class="card-meta">Company rollup · Opportunities</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 4: Outro 17–22s -->
+      <section
+        id="scene-outro"
+        class="clip forest"
+        data-start="17.4"
+        data-duration="4.6"
+        data-track-index="0"
+        data-layout-allow-overlap
+      >
+        <div class="grid grid-light"></div>
+        <div class="scene-inner">
+          <p id="outro-label" class="label">OpportunityPedia</p>
+          <h2 id="outro-title" class="outro-title">Opportunity is already out there.</h2>
+          <p id="outro-lead" class="outro-lead">We help make it visible.</p>
+          <div id="outro-cta" class="cta">Explore OpportunityPedia</div>
+        </div>
+      </section>
+
+      <audio
+        id="bg-music"
+        data-start="0"
+        data-duration="22"
+        data-track-index="10"
+        data-volume="0.14"
+        src="assets/music/happy-beats-business-moves-vol-10-by-ende-dot-app.mp3"
+      ></audio>
+      <audio id="vo" data-start="0.25" data-track-index="3" data-volume="1" src="assets/voiceover.wav"></audio>
+      <audio
+        id="sfx-run"
+        data-start="7.35"
+        data-duration="0.1"
+        data-track-index="11"
+        data-volume="0.55"
+        src="assets/sfx/interface/click_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-stage"
+        data-start="12.02"
+        data-duration="0.11"
+        data-track-index="11"
+        data-volume="0.45"
+        src="assets/sfx/interface/drop_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-logo"
+        data-start="18.55"
+        data-duration="0.62"
+        data-track-index="11"
+        data-volume="0.5"
+        src="assets/sfx/interface/switch_001.ogg"
+      ></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1
+      tl.fromTo('#hook-label', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 0.2);
+      tl.fromTo('#hook-title', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 1.0, ease: 'power3.out' }, 0.45);
+      tl.fromTo('#hook-lead', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 1.2);
+
+      // Scene 2 — beat-locked near 5.19
+      tl.fromTo('#radar-label', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 5.05);
+      tl.fromTo('#radar-title', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out' }, 5.25);
+      tl.fromTo('#radar-lead', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 5.7);
+      tl.fromTo(
+        '#radar-panel',
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out' },
+        5.9,
+      );
+      tl.fromTo('#cursor', { opacity: 0, x: -40, y: -20 }, { opacity: 1, x: 0, y: 0, duration: 0.7, ease: 'power2.out' }, 6.7);
+      tl.to('#run-btn', { scale: 0.96, duration: 0.12, yoyo: true, repeat: 1, transformOrigin: '50% 50%' }, 7.3);
+
+      // Scene 3 — stages on beat grid ~11.47+
+      tl.fromTo('#sig-label', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 11.0);
+      tl.fromTo('#sig-title', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 11.2);
+      // beat-grid: stage 1 at 12.02s, stage 2 at 12.56s, stage 3 at 13.11s
+      tl.fromTo('#stage-1', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 12.02);
+      tl.fromTo('#stage-2', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 12.56);
+      tl.fromTo('#stage-3', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 13.11);
+      tl.fromTo('#card-1', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 14.2);
+      tl.fromTo('#card-2', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 14.73);
+
+      // Scene 4 — beat-locked ~18.55
+      tl.fromTo('#outro-label', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 17.6);
+      tl.fromTo('#outro-title', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out' }, 17.85);
+      tl.fromTo('#outro-lead', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 18.4);
+      tl.fromTo('#outro-cta', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out' }, 18.55);
+
+      window.__timelines['main'] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

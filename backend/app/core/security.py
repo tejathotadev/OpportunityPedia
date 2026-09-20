@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+from functools import lru_cache
 
 import bcrypt
 import jwt
+from cryptography.fernet import Fernet, InvalidToken
 
 from app.core.config import settings
 
@@ -16,6 +19,26 @@ def verify_password(plain: str, hashed: str) -> bool:
     if not hashed:
         return False
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+@lru_cache(maxsize=1)
+def _fernet() -> Fernet:
+    """Derive a stable Fernet key from JWT_SECRET for reversible secrets (SMTP)."""
+    import base64
+
+    digest = sha256((settings.JWT_SECRET or "change-me").encode("utf-8")).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+def encrypt_secret(plain: str) -> str:
+    return _fernet().encrypt(plain.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_secret(token: str) -> str:
+    try:
+        return _fernet().decrypt(token.encode("utf-8")).decode("utf-8")
+    except (InvalidToken, ValueError) as exc:
+        raise ValueError("Could not decrypt stored secret") from exc
 
 
 def create_access_token(

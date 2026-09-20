@@ -100,26 +100,38 @@ def _send_via_resend(
         raise RuntimeError(f"Resend error {response.status_code}: {detail}")
 
 
-def _send_via_smtp(message: EmailMessage) -> None:
-    """Open SMTP with a hard timeout so Railway invites cannot hang indefinitely."""
+def _send_via_smtp_credentials(
+    message: EmailMessage,
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    use_ssl: bool,
+) -> None:
+    """Send with explicit SMTP credentials (workspace or platform)."""
     timeout = _smtp_timeout()
-    if settings.SMTP_USE_SSL:
-        with smtplib.SMTP_SSL(
-            settings.SMTP_HOST,
-            settings.SMTP_PORT,
-            timeout=timeout,
-        ) as smtp:
-            smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+    if use_ssl:
+        with smtplib.SMTP_SSL(host, port, timeout=timeout) as smtp:
+            smtp.login(username, password)
             smtp.send_message(message)
     else:
-        with smtplib.SMTP(
-            settings.SMTP_HOST,
-            settings.SMTP_PORT,
-            timeout=timeout,
-        ) as smtp:
+        with smtplib.SMTP(host, port, timeout=timeout) as smtp:
             smtp.starttls()
-            smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            smtp.login(username, password)
             smtp.send_message(message)
+
+
+def _send_via_smtp(message: EmailMessage) -> None:
+    """Open platform SMTP with a hard timeout so Railway invites cannot hang indefinitely."""
+    _send_via_smtp_credentials(
+        message,
+        host=settings.SMTP_HOST,
+        port=settings.SMTP_PORT,
+        username=settings.SMTP_USER,
+        password=settings.SMTP_PASSWORD,
+        use_ssl=bool(settings.SMTP_USE_SSL),
+    )
 
 
 def _deliver(
@@ -130,8 +142,30 @@ def _deliver(
     html: str | None = None,
     reply_to: str | None = None,
     from_address: str | None = None,
+    smtp_override: dict | None = None,
 ) -> None:
-    """Prefer Resend (HTTPS); fall back to SMTP when Resend is not configured."""
+    """Prefer workspace SMTP when provided; else Resend; else platform SMTP."""
+    if smtp_override:
+        sender = from_address or smtp_override.get("from_email") or _from_address()
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = sender
+        message["To"] = to_email
+        if reply_to:
+            message["Reply-To"] = reply_to
+        message.set_content(text)
+        if html:
+            message.add_alternative(html, subtype="html")
+        _send_via_smtp_credentials(
+            message,
+            host=str(smtp_override["host"]),
+            port=int(smtp_override["port"]),
+            username=str(smtp_override["username"]),
+            password=str(smtp_override["password"]),
+            use_ssl=bool(smtp_override.get("use_ssl")),
+        )
+        return
+
     sender = from_address or _from_address()
     if resend_configured():
         _send_via_resend(
@@ -237,12 +271,36 @@ def send_outreach_email(
     body: str,
     reply_to: str | None = None,
     from_display_name: str | None = None,
+    smtp_override: dict | None = None,
 ) -> None:
     """Send a composed outreach message. Raises on delivery failure.
 
-    ``from_display_name`` is typically the customer's company so inboxes show
-    their brand while mail still leaves from the verified platform mailbox.
+    When ``smtp_override`` is set (workspace company SMTP), mail leaves from
+    that mailbox. Otherwise delivery uses the verified platform mailbox and
+    ``from_display_name`` only changes the visible From name.
     """
+    if smtp_override:
+        from_name = (smtp_override.get("from_name") or from_display_name or "").strip()
+        mailbox = str(smtp_override.get("from_email") or "").strip()
+        if from_name and mailbox:
+            safe = " ".join(from_name.replace('"', "").replace("\\", "").split())
+            if any(ch in safe for ch in (",", "<", ">", "@")):
+                from_address = f'"{safe}" <{mailbox}>'
+            else:
+                from_address = f"{safe} <{mailbox}>"
+        else:
+            from_address = mailbox or None
+        _deliver(
+            to_email=to_email,
+            subject=subject,
+            text=body,
+            html=None,
+            reply_to=reply_to,
+            from_address=from_address,
+            smtp_override=smtp_override,
+        )
+        return
+
     if not email_configured():
         raise RuntimeError("Email is not configured (set RESEND_API_KEY or SMTP_*)")
     _deliver(
@@ -252,4 +310,43 @@ def send_outreach_email(
         html=None,
         reply_to=reply_to,
         from_address=format_from_address(display_name=from_display_name),
+    )
+
+
+def send_test_via_smtp(
+    *,
+    to_email: str,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    from_email: str,
+    from_name: str | None = None,
+    use_ssl: bool = False,
+) -> None:
+    """Send a short test message using the given SMTP credentials."""
+    label = (from_name or "").strip() or "OpportunityPedia"
+    safe = " ".join(label.replace('"', "").replace("\\", "").split())
+    if any(ch in safe for ch in (",", "<", ">", "@")):
+        sender = f'"{safe}" <{from_email}>'
+    else:
+        sender = f"{safe} <{from_email}>"
+    _deliver(
+        to_email=to_email,
+        subject="OpportunityPedia SMTP test",
+        text=(
+            "This is a test email from OpportunityPedia.\n\n"
+            "Your workspace SMTP settings are working.\n"
+        ),
+        html=None,
+        reply_to=None,
+        from_address=sender,
+        smtp_override={
+            "host": host,
+            "port": port,
+            "username": username,
+            "password": password,
+            "from_email": from_email,
+            "use_ssl": use_ssl,
+        },
     )

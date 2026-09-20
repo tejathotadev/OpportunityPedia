@@ -27,3 +27,4 @@ class Tables:
     app_notifications = "app_notifications"
     curated_opportunities = "curated_opportunities"
     curated_opportunity_visibility = "curated_opportunity_visibility"
+    workspace_smtp_settings = "workspace_smtp_settings"
