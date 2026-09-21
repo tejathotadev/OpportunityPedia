@@ -301,8 +301,9 @@ export function AdminOpportunitiesPage() {
             Opportunities
           </h1>
           <p className="mt-2 max-w-2xl text-[0.9375rem] text-graphite">
-            Add opportunity details first, then assign customer workspaces when ready. They appear for
-            those users only after their next successful Radar run.
+            Add opportunity details first, then assign customer workspaces when ready.
+            Existing unlocked workspaces keep access when you edit. New workspaces unlock
+            after a successful Radar run (or immediately if they already ran Radar successfully).
           </p>
         </div>
         <Button type="button" size="sm" onClick={openCreate}>
@@ -604,8 +605,9 @@ export function AdminOpportunitiesPage() {
               </div>
             </div>
             <p className="mt-1 text-xs text-graphite">
-              Optional — leave empty to save the opportunity now and assign customers later. Selected
-              workspaces see it after their next successful Radar run.
+              Optional — leave empty to save now and assign customers later. New workspaces unlock
+              after their next successful Radar run (or right away if they already ran Radar). Editing
+              this list does not lock out workspaces that were already unlocked.
             </p>
             {users.isLoading ? (
               <p className="mt-3 text-sm text-graphite">Loading users…</p>

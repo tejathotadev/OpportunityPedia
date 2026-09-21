@@ -84,6 +84,108 @@ def _as_list(value: Any) -> list[str]:
     return []
 
 
+def _workspace_had_successful_radar(cur, workspace_id: int) -> bool:
+    """True if this workspace owner has at least one successful Radar run."""
+    try:
+        cur.execute(
+            f"""
+            SELECT 1
+            FROM {Tables.radar_runs}
+            WHERE user_id = %s AND status = 'ok'
+            LIMIT 1
+            """,
+            (int(workspace_id),),
+        )
+        return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
+def _insert_visibility_row(cur, *, opportunity_id: Any, workspace_id: int) -> None:
+    """Insert one visibility row; unlock immediately if workspace already ran Radar ok."""
+    released_at = (
+        datetime.now(timezone.utc)
+        if _workspace_had_successful_radar(cur, workspace_id)
+        else None
+    )
+    cur.execute(
+        f"""
+        INSERT INTO {Tables.curated_opportunity_visibility}
+          (opportunity_id, workspace_id, released_at)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (opportunity_id, workspace_id) DO NOTHING
+        """,
+        (opportunity_id, int(workspace_id), released_at),
+    )
+
+
+def _sync_visibility(cur, *, opportunity_id: Any, workspace_ids: list[int]) -> list[int]:
+    """Diff visibility: keep released_at for existing workspaces; only add/remove.
+
+    - Removed workspaces: delete row
+    - Kept workspaces: untouched (released_at preserved)
+    - New workspaces: insert; auto-release if they already have a successful Radar run
+    """
+    wanted = sorted({int(x) for x in workspace_ids})
+    cur.execute(
+        f"""
+        SELECT workspace_id
+        FROM {Tables.curated_opportunity_visibility}
+        WHERE opportunity_id = %s
+        """,
+        (opportunity_id,),
+    )
+    existing_ids = {int(r["workspace_id"]) for r in cur.fetchall()}
+    wanted_set = set(wanted)
+
+    to_remove = existing_ids - wanted_set
+    to_add = wanted_set - existing_ids
+
+    if to_remove:
+        cur.execute(
+            f"""
+            DELETE FROM {Tables.curated_opportunity_visibility}
+            WHERE opportunity_id = %s
+              AND workspace_id = ANY(%s)
+            """,
+            (opportunity_id, list(to_remove)),
+        )
+
+    for wid in sorted(to_add):
+        _insert_visibility_row(cur, opportunity_id=opportunity_id, workspace_id=wid)
+
+    # Heal rows left locked by older wipe-and-reinsert saves: if the workspace
+    # already completed Radar successfully, unlock without waiting for another run.
+    kept = wanted_set & existing_ids
+    if kept:
+        cur.execute(
+            f"""
+            SELECT workspace_id
+            FROM {Tables.curated_opportunity_visibility}
+            WHERE opportunity_id = %s
+              AND workspace_id = ANY(%s)
+              AND released_at IS NULL
+            """,
+            (opportunity_id, list(kept)),
+        )
+        locked_kept = [int(r["workspace_id"]) for r in cur.fetchall()]
+        now = datetime.now(timezone.utc)
+        for wid in locked_kept:
+            if _workspace_had_successful_radar(cur, wid):
+                cur.execute(
+                    f"""
+                    UPDATE {Tables.curated_opportunity_visibility}
+                    SET released_at = %s
+                    WHERE opportunity_id = %s
+                      AND workspace_id = %s
+                      AND released_at IS NULL
+                    """,
+                    (now, opportunity_id, wid),
+                )
+
+    return wanted
+
+
 def _row_to_dict(row: dict[str, Any], *, visible_workspace_ids: list[int] | None = None) -> dict[str, Any]:
     oid = row["id"]
     return {
@@ -342,15 +444,7 @@ def create(
             row = dict(cur.fetchone())
             oid = row["id"]
             for wid in sorted(set(int(x) for x in visible_workspace_ids)):
-                cur.execute(
-                    f"""
-                    INSERT INTO {Tables.curated_opportunity_visibility}
-                      (opportunity_id, workspace_id)
-                    VALUES (%s, %s)
-                    ON CONFLICT DO NOTHING
-                    """,
-                    (oid, wid),
-                )
+                _insert_visibility_row(cur, opportunity_id=oid, workspace_id=wid)
             return _row_to_dict(
                 row,
                 visible_workspace_ids=sorted(set(int(x) for x in visible_workspace_ids)),
@@ -434,24 +528,11 @@ def update(
                 return None
             data = dict(row)
             if visible_workspace_ids is not None:
-                cur.execute(
-                    f"""
-                    DELETE FROM {Tables.curated_opportunity_visibility}
-                    WHERE opportunity_id = %s
-                    """,
-                    (opportunity_id,),
+                vis_ids = _sync_visibility(
+                    cur,
+                    opportunity_id=opportunity_id,
+                    workspace_ids=visible_workspace_ids,
                 )
-                for wid in sorted(set(int(x) for x in visible_workspace_ids)):
-                    cur.execute(
-                        f"""
-                        INSERT INTO {Tables.curated_opportunity_visibility}
-                          (opportunity_id, workspace_id)
-                        VALUES (%s, %s)
-                        ON CONFLICT DO NOTHING
-                        """,
-                        (opportunity_id, wid),
-                    )
-                vis_ids = sorted(set(int(x) for x in visible_workspace_ids))
             else:
                 vis = _visibility_map(cur, [data["id"]])
                 vis_ids = vis.get(str(data["id"]), [])
@@ -464,23 +545,12 @@ def set_visibility(*, opportunity_id: str, workspace_ids: list[int]) -> dict[str
         return None
     with transaction() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                f"""
-                DELETE FROM {Tables.curated_opportunity_visibility}
-                WHERE opportunity_id = %s
-                """,
-                (opportunity_id,),
+            _ensure_tables(cur)
+            _sync_visibility(
+                cur,
+                opportunity_id=opportunity_id,
+                workspace_ids=workspace_ids,
             )
-            for wid in sorted(set(int(x) for x in workspace_ids)):
-                cur.execute(
-                    f"""
-                    INSERT INTO {Tables.curated_opportunity_visibility}
-                      (opportunity_id, workspace_id)
-                    VALUES (%s, %s)
-                    ON CONFLICT DO NOTHING
-                    """,
-                    (opportunity_id, wid),
-                )
     return get_by_id(opportunity_id)
 
 
