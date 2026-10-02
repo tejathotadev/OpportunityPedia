@@ -5,7 +5,7 @@ import { lazy } from 'react'
  * eagerly by the router — it is the first paint — so it is absent here.
  */
 export const ProductsPage = lazy(() => import('./Products/ProductsPage'))
-export const OpportunityXPage = lazy(() => import('./Products/OpportunityXPage'))
+export const OpportunityPediaPage = lazy(() => import('./Products/OpportunityPediaPage'))
 export const CompanyPage = lazy(() => import('./Company/CompanyPage'))
 export const CareersPage = lazy(() => import('./Careers/CareersPage'))
 export const ContactPage = lazy(() => import('./Contact/ContactPage'))

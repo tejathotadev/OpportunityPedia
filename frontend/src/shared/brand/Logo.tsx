@@ -110,41 +110,13 @@ export function Logo({
   );
 }
 
-/** Compact OpportunityX wordmark for menus and product cards. */
-export function OpportunityXMark({
-  className,
-  tone = 'inverse',
-}: {
-  className?: string;
-  tone?: 'default' | 'inverse';
-}) {
-  return (
-    <span className={cn('inline-flex items-baseline gap-[1px]', className)}>
-      <span
-        className={cn(
-          'text-[1.375rem] leading-none font-semibold tracking-[-0.03em]',
-          tone === 'inverse' ? 'text-white' : 'text-navy',
-        )}
-      >
-        Opportunity
-      </span>
-      <span
-        className={cn(
-          'text-[1.375rem] leading-none font-semibold tracking-[-0.03em]',
-          tone === 'inverse' ? 'text-teal' : 'text-teal-ink',
-        )}
-      >
-        X
-      </span>
-    </span>
-  );
-}
-
-/** Compact OpportunityPedia wordmark for product surfaces. */
-export function OpportunityPediaMark({
+/** Compact product wordmark for menus, cards and product surfaces. */
+export function ProductMark({
+  name,
   className,
   tone = 'default',
 }: {
+  name: string;
   className?: string;
   tone?: 'default' | 'inverse';
 }) {
@@ -156,7 +128,11 @@ export function OpportunityPediaMark({
         className,
       )}
     >
-      OpportunityPedia
+      {name}
     </span>
   );
+}
+
+export function OpportunityPediaMark(props: { className?: string; tone?: 'default' | 'inverse' }) {
+  return <ProductMark name="OpportunityPedia" {...props} />;
 }

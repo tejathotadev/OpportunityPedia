@@ -4,7 +4,7 @@ import { useSeo } from '@/marketing/hooks/useSeo';
 export default function PrivacyPage() {
   useSeo({
     title: 'Privacy',
-    description: 'Privacy information for OpportunityPedia.',
+    description: 'Privacy information for OpportunityX Private Limited and its products, including OpportunityPedia.',
     path: '/privacy',
     index: false,
   });
@@ -14,8 +14,8 @@ export default function PrivacyPage() {
       <section>
         <h2>Information we handle</h2>
         <p>
-          Placeholder. This section should describe what information OpportunityPedia collects
-          through this website and its products, and why.
+          Placeholder. This section should describe what information OpportunityX Private Limited
+          collects through this website and its products, including OpportunityPedia, and why.
         </p>
       </section>
       <section>
@@ -28,8 +28,8 @@ export default function PrivacyPage() {
       <section>
         <h2>Sources</h2>
         <p>
-          Placeholder. This section should describe how OpportunityPedia treats information drawn
-          from external sources within its products.
+          Placeholder. This section should describe how OpportunityX treats information drawn from
+          external sources within its products, such as OpportunityPedia.
         </p>
       </section>
       <section>

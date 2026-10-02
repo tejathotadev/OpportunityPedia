@@ -3,7 +3,7 @@
  * `sink` is the single place to attach one later.
  */
 export type AnalyticsEvent =
-  | 'hero_opportunityx_click'
+  | 'hero_product_click'
   | 'nav_product_click'
   | 'contact_submit'
   | 'careers_view'

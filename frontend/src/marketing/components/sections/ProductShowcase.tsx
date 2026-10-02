@@ -6,7 +6,7 @@ import { Reveal } from '@/marketing/components/common/Reveal';
 import { OpportunityPediaMark } from '@/shared/brand/Logo';
 import { SignalIndex } from '@/marketing/components/brand/SignalIndex';
 import { ProductOutcomes } from '@/marketing/components/visuals/ProductOutcomes';
-import { site } from '@/marketing/data/site';
+import { flagshipProduct } from '@/marketing/data/products';
 import { track } from '@/marketing/lib/analytics';
 
 /**
@@ -31,6 +31,7 @@ export function ProductShowcase() {
               <div className="mt-5">
                 <OpportunityPediaMark className="text-[1.75rem]" />
               </div>
+              <p className="label-meta mt-2.5 text-graphite/70">An OpportunityX product</p>
             </Reveal>
           </div>
 
@@ -50,16 +51,21 @@ export function ProductShowcase() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <LinkButton
-                  to={site.productAppUrl}
+                  to={flagshipProduct.path}
                   size="lg"
                   onClick={() => track('nav_product_click', { surface: 'showcase' })}
                 >
                   Explore OpportunityPedia
                 </LinkButton>
                 <LinkButton to="/products" variant="secondary" size="lg">
-                  View product overview
+                  All products
                 </LinkButton>
               </div>
+
+              <p className="mt-8 max-w-[40rem] border-t border-mist pt-5 text-sm text-graphite">
+                OpportunityPedia is the first OpportunityX product. New products and services will
+                be listed on our Products page when they are ready to use.
+              </p>
             </Reveal>
           </div>
         </div>

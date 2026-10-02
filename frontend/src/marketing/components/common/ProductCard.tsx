@@ -7,12 +7,12 @@ type ProductCardProps = {
   wordmark: ReactNode;
   description: string;
   action?: ReactNode;
-  /** `product` uses the OpportunityX navy stage; `placeholder` stays on paper. */
+  /** `product` uses the navy product stage; `placeholder` stays on paper. */
   tone?: 'product' | 'placeholder';
   className?: string;
 };
 
-/** Ready for additional products; only one real entry exists today. */
+/** One card per entry in `data/products.ts`. */
 export function ProductCard({
   status,
   wordmark,

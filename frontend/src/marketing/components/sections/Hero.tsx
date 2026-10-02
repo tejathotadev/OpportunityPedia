@@ -3,6 +3,7 @@ import { LinkButton } from '@/marketing/components/common/Button';
 import { SectionLabel } from '@/marketing/components/common/SectionLabel';
 import { EditorialHeading } from '@/marketing/components/common/EditorialHeading';
 import { OpportunityAtlas } from '@/marketing/components/visuals/OpportunityAtlas';
+import { flagshipProduct } from '@/marketing/data/products';
 import { site } from '@/marketing/data/site';
 import { track } from '@/marketing/lib/analytics';
 
@@ -34,19 +35,20 @@ export function Hero() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center md:mt-9">
               <LinkButton
-                to={site.productAppUrl}
+                to={flagshipProduct.path}
                 size="lg"
-                onClick={() => track('hero_opportunityx_click')}
+                onClick={() => track('hero_product_click', { product: flagshipProduct.slug })}
               >
-                Explore OpportunityPedia
+                Explore {flagshipProduct.name}
               </LinkButton>
-              <LinkButton to="/contact" variant="secondary" size="lg">
-                Talk to us
+              <LinkButton to="/products" variant="secondary" size="lg">
+                Our products
               </LinkButton>
             </div>
 
             <p className="mt-8 max-w-[28rem] border-t border-mist pt-5 text-sm text-graphite">
-              Built for teams that need to move before the opportunity disappears.
+              Our first product, {flagshipProduct.name}, is built for teams that need to move before
+              the opportunity disappears.
             </p>
           </div>
 

@@ -31,7 +31,7 @@
         height: 1px;
         background: #e7e9e4;
       }
-      /* Same lockup proportions as src/components/brand/Logo.tsx at 1.6x:
+      /* Same lockup proportions as src/shared/brand/Logo.tsx at 1.6x:
          mark height 48, wordmark 27, gap 5, endorsement 16. */
       .lockup {
         position: absolute;
@@ -56,6 +56,10 @@
         font-weight: 600;
         letter-spacing: -0.022em;
         line-height: 1;
+      }
+      .wordmark b {
+        font-weight: 600;
+        color: #0f766e;
       }
       .endorsement {
         font-size: 16px;
@@ -134,18 +138,15 @@
     <div class="stage">
       <div class="rule"></div>
       <div class="lockup">
-        <img src="../src/assets/brand/mark.png" alt="" />
+        <img src="../src/shared/brand/mark.png" alt="" />
         <div class="lockup-text">
-          <div class="wordmark">OpportunityPedia</div>
-          <div class="endorsement">
-            Powered by <span>Opportunity<b>X</b></span>
-          </div>
+          <div class="wordmark">Opportunity<b>X</b></div>
         </div>
       </div>
-      <div class="eyebrow">Opportunity intelligence company</div>
+      <div class="eyebrow">Technology company</div>
       <h1>We make opportunity easier to see.</h1>
-      <p>Intelligence products that turn fragmented market signals into clear opportunities for action.</p>
-      <div class="meta">Flagship / OpportunityX<br />IDX / 0347</div>
+      <p>Products that help teams find and act on business opportunity. Our first product is OpportunityPedia.</p>
+      <div class="meta">Flagship product / OpportunityPedia<br />IDX / 0347</div>
       <div class="spine"></div>
       <div class="node" style="top: 210px"></div>
       <div class="node" style="top: 268px"></div>

@@ -93,7 +93,55 @@ export const signalCategories = [
 ] as const;
 
 /* ---------------------------------------------------------------- *
- * OPPORTUNITYX BENEFITS
+ * OPPORTUNITYPEDIA CAPABILITIES — each line must match shipped behaviour.
+ * ---------------------------------------------------------------- */
+export const productCapabilities = [
+  {
+    index: '01',
+    title: 'Government contract notices',
+    signal: 'Buying intent',
+    body: 'Active U.S. federal contract notices from SAM.gov, scanned for the industry (NAICS) codes your team selects.',
+  },
+  {
+    index: '02',
+    title: 'Hiring activity',
+    signal: 'Growth',
+    body: 'Open roles published on public company career boards, grouped by company so you can see who is actively hiring.',
+  },
+  {
+    index: '03',
+    title: 'Prioritized by heat',
+    signal: 'Scoring',
+    body: 'Every opportunity is placed in a lane: Very Hot for active buying, such as an open government notice, and Hot for hiring activity.',
+  },
+  {
+    index: '04',
+    title: 'Evidence attached',
+    signal: 'Source',
+    body: 'Each opportunity links back to the original posting or notice. Government notices also carry the agency, solicitation number, set-aside, response deadline and published contact.',
+  },
+  {
+    index: '05',
+    title: 'Owned and tracked',
+    signal: 'Workflow',
+    body: 'Assign an owner to each opportunity, work from your own queue, and see a shared activity history so nobody duplicates effort.',
+  },
+  {
+    index: '06',
+    title: 'Outreach in context',
+    signal: 'Action',
+    body: 'Send outreach email from the opportunity itself — through your company’s own mail server if you connect one — with AI-assisted drafts where enabled.',
+  },
+  {
+    index: '07',
+    title: 'One team workspace',
+    signal: 'Coordination',
+    body: 'Invite teammates into a shared workspace and get notified when a scan finds something new.',
+  },
+] as const;
+
+/* ---------------------------------------------------------------- *
+ * OPPORTUNITYPEDIA BENEFITS
  * ---------------------------------------------------------------- */
 export const productBenefits = [
   {
@@ -258,15 +306,4 @@ export const responsibilityPrinciples = [
     title: 'Security',
     body: 'Sensitive account and organizational data should be treated responsibly.',
   },
-] as const;
-
-/* ---------------------------------------------------------------- *
- * CREDIBILITY — the operational problem, in place of fake proof.
- * ---------------------------------------------------------------- */
-export const operationalFrictions = [
-  'Multiple sources',
-  'Manual research',
-  'Duplicate outreach',
-  'Missed timing',
-  'Unclear ownership',
 ] as const;

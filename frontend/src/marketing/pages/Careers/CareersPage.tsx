@@ -38,7 +38,7 @@ export default function CareersPage() {
   useSeo({
     title: 'Careers',
     description:
-      'Build what helps people move first. OpportunityPedia is building the systems behind a new category of opportunity intelligence.',
+      'Build what helps people move first. OpportunityX is building the products behind a new category of opportunity intelligence, starting with OpportunityPedia.',
     path: '/careers',
   });
 
@@ -58,12 +58,11 @@ export default function CareersPage() {
         ]}
       />
 
-      {/* Why OpportunityPedia */}
       <Section divider surface="white" aria-labelledby="why-join-heading">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
             <Reveal>
-              <SectionLabel>WHY OPPORTUNITYPEDIA</SectionLabel>
+              <SectionLabel>WHY OPPORTUNITYX</SectionLabel>
               <EditorialHeading id="why-join-heading" size="display" className="mt-6 max-w-[16ch]">
                 An unglamorous problem worth solving properly.
               </EditorialHeading>

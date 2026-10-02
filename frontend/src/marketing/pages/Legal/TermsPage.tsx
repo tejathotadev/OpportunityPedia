@@ -4,7 +4,7 @@ import { useSeo } from '@/marketing/hooks/useSeo';
 export default function TermsPage() {
   useSeo({
     title: 'Terms',
-    description: 'Terms information for OpportunityPedia.',
+    description: 'Terms information for OpportunityX Private Limited and its products, including OpportunityPedia.',
     path: '/terms',
     index: false,
   });
@@ -20,8 +20,8 @@ export default function TermsPage() {
       <section>
         <h2>Products</h2>
         <p>
-          Placeholder. This section should explain that access to OpportunityX is governed by a
-          separate agreement.
+          Placeholder. This section should explain that access to OpportunityPedia and other
+          OpportunityX products is governed by a separate agreement.
         </p>
       </section>
       <section>

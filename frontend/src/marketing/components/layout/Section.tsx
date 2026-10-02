@@ -14,7 +14,7 @@ type SectionProps = {
   divider?: boolean;
   /**
    * Dark company sections use the forest tones, never `ink`. Ink shares its
-   * hue angle with the OpportunityX navy, so an ink surface reads as the
+   * hue angle with the OpportunityPedia navy, so an ink surface reads as the
    * product rather than the company. Navy belongs only to product stages.
    */
   surface?: 'paper' | 'white' | 'warm' | 'forest-deep' | 'forest';

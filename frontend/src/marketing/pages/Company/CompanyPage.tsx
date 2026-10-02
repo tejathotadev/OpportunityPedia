@@ -6,26 +6,28 @@ import { LinkButton } from '@/marketing/components/common/Button';
 import { Reveal } from '@/marketing/components/common/Reveal';
 import { Philosophy } from '@/marketing/components/sections/Philosophy';
 import { FinalCta } from '@/marketing/components/sections/FinalCta';
+import { flagshipProduct } from '@/marketing/data/products';
+import { legalEntity } from '@/marketing/data/site';
 import { useSeo } from '@/marketing/hooks/useSeo';
 
 export default function CompanyPage() {
   useSeo({
-    title: 'Company',
+    title: 'About',
     description:
-      'OpportunityX builds products that make business opportunity easier to see and act on. Meet the team behind OpportunityPedia.',
+      'OpportunityX is a technology company building products that make business opportunity easier to see and act on. Its first product is OpportunityPedia.',
     path: '/company',
   });
 
   return (
     <>
       <PageHero
-        eyebrow="COMPANY"
+        eyebrow="ABOUT OPPORTUNITYX"
         headline="We believe the next opportunity should be easier to find."
-        lead="OpportunityX builds products that help teams see what matters — and act before it disappears."
+        lead="OpportunityX is a technology company. We build products that help teams see what matters — and act before it disappears."
         index={[
-          { key: 'Company', value: 'OpportunityX' },
-          { key: 'Flagship', value: 'OpportunityPedia' },
-          { key: 'Stage', value: 'Building' },
+          { key: 'Company', value: legalEntity.name },
+          { key: 'Flagship product', value: flagshipProduct.name },
+          { key: 'Based in', value: 'Hyderabad, India' },
         ]}
       />
 
@@ -87,31 +89,32 @@ export default function CompanyPage() {
 
       <Philosophy />
 
-      <Section divider surface="white" aria-labelledby="building-heading">
+      <Section id="what-we-do" divider surface="white" aria-labelledby="what-we-do-heading">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-3">
             <Reveal>
-              <SectionLabel index="03">WHAT WE&rsquo;RE BUILDING</SectionLabel>
+              <SectionLabel index="03">WHAT WE DO</SectionLabel>
             </Reveal>
           </div>
           <div className="lg:col-span-9">
             <Reveal>
-              <EditorialHeading id="building-heading" size="display" className="max-w-[22ch]">
-                Building products around opportunity.
+              <EditorialHeading id="what-we-do-heading" size="display" className="max-w-[22ch]">
+                We design, build and run software products.
               </EditorialHeading>
               <div className="mt-10 grid max-w-[56rem] gap-8 border-t border-mist pt-8 md:grid-cols-2 md:gap-12">
                 <p className="text-lead text-graphite">
                   OpportunityX started from a simple observation: teams spend enormous amounts of
-                  time searching for information that already exists.
+                  time searching for information that already exists. Our first product,
+                  OpportunityPedia, turns that search into a shared, prioritized workflow.
                 </p>
                 <p className="text-lead text-graphite">
-                  Our goal is to organize that into products that help people understand what
-                  matters, when it matters, and what to do next.
+                  As the company grows, we will add further products and services. Each one will
+                  appear on our Products page when it is ready to use — not before.
                 </p>
               </div>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <LinkButton to="/products/opportunitypedia" size="lg">
-                  Explore OpportunityPedia
+                <LinkButton to="/products" size="lg">
+                  Our products
                 </LinkButton>
                 <LinkButton to="/careers" variant="secondary" size="lg">
                   Join the team

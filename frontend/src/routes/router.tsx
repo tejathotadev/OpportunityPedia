@@ -18,7 +18,7 @@ import {
   CompanyPage,
   ContactPage,
   NotFoundPage as MarketingNotFoundPage,
-  OpportunityXPage,
+  OpportunityPediaPage,
   PrivacyPage,
   ProductsPage,
   TermsPage,
@@ -111,7 +111,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'products', element: split(<ProductsPage />) },
-      { path: 'products/opportunitypedia', element: split(<OpportunityXPage />) },
+      { path: 'products/opportunitypedia', element: split(<OpportunityPediaPage />) },
       { path: 'products/opportunityx', element: <Navigate to="/products/opportunitypedia" replace /> },
       { path: 'company', element: split(<CompanyPage />) },
       { path: 'careers', element: split(<CareersPage />) },

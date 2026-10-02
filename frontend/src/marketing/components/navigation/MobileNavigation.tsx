@@ -95,6 +95,26 @@ export function MobileNavigation({ open, onClose }: MobileNavigationProps) {
                 </span>
                 {item.label}
               </NavLink>
+              {item.children?.length ? (
+                <ul aria-label={item.label} className="pb-3 pl-12">
+                  {item.children.map((child) => (
+                    <li key={child.to}>
+                      <NavLink
+                        to={child.to}
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex min-h-11 items-center text-[1.0625rem] font-medium transition-colors',
+                            isActive ? 'text-forest' : 'text-graphite',
+                          )
+                        }
+                      >
+                        {child.label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -118,7 +138,7 @@ export function MobileNavigation({ open, onClose }: MobileNavigationProps) {
         <SignalIndex
           entries={[
             { key: 'Company', value: 'OpportunityX' },
-            { key: 'Category', value: 'Opportunity Intelligence' },
+            { key: 'Flagship product', value: 'OpportunityPedia' },
           ]}
           layout="stack"
         />

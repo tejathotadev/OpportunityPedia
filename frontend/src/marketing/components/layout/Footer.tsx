@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { Logo } from '@/shared/brand/Logo';
 import { Container } from '@/marketing/components/layout/Container';
 import { SignalIndex } from '@/marketing/components/brand/SignalIndex';
-import { footerNav, site } from '@/marketing/data/site';
+import { flagshipProduct } from '@/marketing/data/products';
+import { copyrightNotice, footerNav, legalEntity, site } from '@/marketing/data/site';
 
 export function Footer() {
   return (
@@ -18,8 +19,8 @@ export function Footer() {
               className="mt-6"
               layout="stack"
               entries={[
-                { key: 'Category', value: 'Opportunity Intelligence' },
-                { key: 'Flagship', value: 'OpportunityPedia' },
+                { key: 'Company', value: site.name },
+                { key: 'Flagship product', value: flagshipProduct.name },
               ]}
             />
           </div>
@@ -48,10 +49,25 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-mist pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-graphite">
-            © {site.copyrightYear} {site.name}
+        <div className="mt-14 grid gap-6 border-t border-mist pt-6 md:grid-cols-[minmax(0,1fr)_auto] md:gap-12">
+          <div className="text-sm leading-relaxed text-graphite">
+            <p className="font-medium text-ink">{legalEntity.name}</p>
+            <address className="mt-1 not-italic">
+              {legalEntity.addressLines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+            </address>
+            <p className="mt-1">CIN: {legalEntity.cin}</p>
+          </div>
+          <p className="max-w-xs text-sm leading-relaxed text-graphite md:text-right">
+            {flagshipProduct.name} is a product of {legalEntity.name}.
           </p>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 border-t border-mist pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-graphite">{copyrightNotice}</p>
           <p className="label-meta">{site.tagline}</p>
         </div>
       </Container>

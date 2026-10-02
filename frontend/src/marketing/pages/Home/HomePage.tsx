@@ -8,17 +8,17 @@ import { FinalCta } from '@/marketing/components/sections/FinalCta';
 import { useSeo } from '@/marketing/hooks/useSeo';
 
 /**
- * Marketing homepage for OpportunityX (company).
+ * Homepage for OpportunityX, the company.
  *
- * Kept short on purpose: who we are → the problem → how we think → the
- * product → what using it feels like → talk to us. Collection methods and
- * signal taxonomies stay inside OpportunityPedia, not on this page.
+ * Kept short on purpose: who we are → the problem → how we think → our
+ * products → what using OpportunityPedia feels like → talk to us. Detailed
+ * product capabilities live on the OpportunityPedia page, not here.
  */
 export function HomePage() {
   useSeo({
     title: 'OpportunityX — We make opportunity easier to see',
     description:
-      'OpportunityX builds OpportunityPedia, the platform that helps teams find, prioritize and act on business opportunities — without the noise.',
+      'OpportunityX is a technology company building products that help teams find and act on business opportunity. Its first product is OpportunityPedia.',
     path: '/',
   });
 

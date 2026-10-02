@@ -70,7 +70,7 @@ export function Navbar() {
             <nav aria-label="Primary" className="hidden lg:block">
               <ul className="flex items-center gap-1">
                 {primaryNav.map((item) =>
-                  item.label === 'Products' ? (
+                  item.children?.length ? (
                     <li
                       key={item.to}
                       ref={productsWrapRef}

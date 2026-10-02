@@ -2,7 +2,7 @@ import { Container } from '@/marketing/components/layout/Container';
 import { EditorialHeading } from '@/marketing/components/common/EditorialHeading';
 import { LinkButton } from '@/marketing/components/common/Button';
 import { Reveal } from '@/marketing/components/common/Reveal';
-import { site } from '@/marketing/data/site';
+import { flagshipProduct } from '@/marketing/data/products';
 import { track } from '@/marketing/lib/analytics';
 
 export function FinalCta() {
@@ -31,7 +31,7 @@ export function FinalCta() {
                 <span className="text-white/55">We help make it visible.</span>
               </EditorialHeading>
               <p className="mt-7 max-w-[34rem] text-lead text-white/65">
-                Explore OpportunityPedia — the flagship product from OpportunityX.
+                Explore {flagshipProduct.name} — an OpportunityX product.
               </p>
             </Reveal>
           </div>
@@ -40,12 +40,12 @@ export function FinalCta() {
             <Reveal delay={100}>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
                 <LinkButton
-                  to={site.productAppUrl}
+                  to={flagshipProduct.path}
                   variant="inverse"
                   size="lg"
                   onClick={() => track('nav_product_click', { surface: 'final_cta' })}
                 >
-                  Explore OpportunityPedia
+                  Explore {flagshipProduct.name}
                 </LinkButton>
                 <LinkButton
                   to="/contact"
