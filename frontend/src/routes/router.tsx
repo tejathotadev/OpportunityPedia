@@ -109,17 +109,18 @@ export const router = createBrowserRouter([
   {
     element: <SiteLayout />,
     children: [
+      // Lazy pages suspend to the boundary in SiteLayout, which also holds the footer.
       { index: true, element: <HomePage /> },
-      { path: 'products', element: split(<ProductsPage />) },
-      { path: 'products/opportunitypedia', element: split(<OpportunityPediaPage />) },
+      { path: 'products', element: <ProductsPage /> },
+      { path: 'products/opportunitypedia', element: <OpportunityPediaPage /> },
       { path: 'products/opportunityx', element: <Navigate to="/products/opportunitypedia" replace /> },
-      { path: 'company', element: split(<CompanyPage />) },
-      { path: 'careers', element: split(<CareersPage />) },
-      { path: 'contact', element: split(<ContactPage />) },
-      { path: 'privacy', element: split(<PrivacyPage />) },
-      { path: 'terms', element: split(<TermsPage />) },
+      { path: 'company', element: <CompanyPage /> },
+      { path: 'careers', element: <CareersPage /> },
+      { path: 'contact', element: <ContactPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'terms', element: <TermsPage /> },
       { path: 'about', element: <Navigate to="/company" replace /> },
-      { path: '*', element: split(<MarketingNotFoundPage />) },
+      { path: '*', element: <MarketingNotFoundPage /> },
     ],
   },
 ])

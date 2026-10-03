@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu } from 'lucide-react';
 import { Logo } from '@/shared/brand/Logo';
@@ -11,13 +11,15 @@ import { cn } from '@/shared/cn';
 import { MobileNavigation } from './MobileNavigation';
 import { ProductsMenu } from './ProductsMenu';
 
-const MENU_ID = 'products-mega-menu';
+const MENU_ID = 'products-menu';
 
 export function Navbar() {
   const scrolled = useScrolled(8);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const productsWrapRef = useRef<HTMLLIElement>(null);
+  const productsButtonRef = useRef<HTMLButtonElement>(null);
+  const clickPointerType = useRef('');
   const closeTimer = useRef<number>(0);
   const { pathname } = useLocation();
 
@@ -48,6 +50,12 @@ export function Navbar() {
     closeTimer.current = window.setTimeout(() => setProductsOpen(false), 140);
   };
 
+  const closeProductsAndRefocus = useCallback(() => {
+    const focusWasInside = productsWrapRef.current?.contains(document.activeElement);
+    setProductsOpen(false);
+    if (focusWasInside) productsButtonRef.current?.focus();
+  }, []);
+
   return (
     <>
       <a
@@ -74,19 +82,24 @@ export function Navbar() {
                     <li
                       key={item.to}
                       ref={productsWrapRef}
-                      className="relative"
-                      onPointerEnter={openProducts}
-                      onPointerLeave={scheduleCloseProducts}
+                      className="relative flex items-center"
+                      onPointerEnter={(event) => {
+                        if (event.pointerType === 'mouse') openProducts();
+                      }}
+                      onPointerLeave={(event) => {
+                        if (event.pointerType === 'mouse') scheduleCloseProducts();
+                      }}
+                      onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                          setProductsOpen(false);
+                        }
+                      }}
                     >
                       <NavLink
                         to={item.to}
-                        aria-expanded={productsOpen}
-                        aria-haspopup="true"
-                        aria-controls={productsOpen ? MENU_ID : undefined}
-                        onFocus={openProducts}
                         className={({ isActive }) =>
                           cn(
-                            'inline-flex h-11 items-center gap-1.5 rounded-control px-3 text-[0.9375rem] transition-colors',
+                            'inline-flex h-11 items-center rounded-control pr-1 pl-3 text-[0.9375rem] transition-colors',
                             isActive || productsOpen
                               ? 'text-ink'
                               : 'text-graphite hover:text-ink',
@@ -94,6 +107,29 @@ export function Navbar() {
                         }
                       >
                         {item.label}
+                      </NavLink>
+                      <button
+                        ref={productsButtonRef}
+                        type="button"
+                        aria-expanded={productsOpen}
+                        aria-controls={productsOpen ? MENU_ID : undefined}
+                        aria-label={`${productsOpen ? 'Hide' : 'Show'} ${item.label.toLowerCase()}`}
+                        onPointerDown={(event) => {
+                          clickPointerType.current = event.pointerType;
+                        }}
+                        onClick={() => {
+                          window.clearTimeout(closeTimer.current);
+                          // Hover has already opened the menu for a mouse, so a click must
+                          // not toggle it shut. Keyboard and touch toggle.
+                          if (clickPointerType.current === 'mouse') setProductsOpen(true);
+                          else setProductsOpen((open) => !open);
+                          clickPointerType.current = '';
+                        }}
+                        className={cn(
+                          'inline-flex h-11 w-7 items-center justify-center rounded-control transition-colors',
+                          productsOpen ? 'text-ink' : 'text-graphite hover:text-ink',
+                        )}
+                      >
                         <ChevronDown
                           aria-hidden="true"
                           className={cn(
@@ -101,9 +137,13 @@ export function Navbar() {
                             productsOpen && 'rotate-180',
                           )}
                         />
-                      </NavLink>
+                      </button>
                       {productsOpen ? (
-                        <ProductsMenu id={MENU_ID} onDismiss={() => setProductsOpen(false)} />
+                        <ProductsMenu
+                          id={MENU_ID}
+                          onDismiss={() => setProductsOpen(false)}
+                          onEscape={closeProductsAndRefocus}
+                        />
                       ) : null}
                     </li>
                   ) : (

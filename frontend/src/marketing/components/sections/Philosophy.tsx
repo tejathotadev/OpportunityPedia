@@ -34,25 +34,26 @@ export function Philosophy() {
         </div>
 
         <div className="lg:col-span-6 lg:col-start-7">
-          <dl className="border-t border-white/12">
+          <ul className="border-t border-white/12">
             {principles.map((principle, i) => (
               <Reveal
+                as="li"
                 key={principle.title}
                 delay={i * 70}
                 className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 border-b border-white/12 py-6"
               >
                 <span className="label-meta pt-1 text-white">{principle.index}</span>
                 <div>
-                  <dt className="text-[1.125rem] leading-snug font-semibold tracking-[-0.015em] text-white">
+                  <h3 className="text-[1.125rem] leading-snug font-semibold tracking-[-0.015em] text-white">
                     {principle.title}
-                  </dt>
-                  <dd className="mt-2 text-[0.9375rem] leading-relaxed text-white/55">
+                  </h3>
+                  <p className="mt-2 text-[0.9375rem] leading-relaxed text-white/55">
                     {principle.body}
-                  </dd>
+                  </p>
                 </div>
               </Reveal>
             ))}
-          </dl>
+          </ul>
         </div>
       </div>
     </Section>

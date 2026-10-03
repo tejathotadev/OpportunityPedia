@@ -36,13 +36,13 @@ export function SignalIndex({
     >
       {entries.map((entry) => (
         <div key={entry.key} className="flex items-center gap-1.5">
-          <dt className={tone === 'inverse' ? 'text-white/35' : 'text-graphite/60'}>
+          <dt className={tone === 'inverse' ? 'text-white/60' : 'text-graphite/90'}>
             {entry.key}
           </dt>
           <span aria-hidden="true" className={tone === 'inverse' ? 'text-white/20' : 'text-mist'}>
             /
           </span>
-          <dd className={tone === 'inverse' ? 'text-white/75' : 'text-ink/70'}>{entry.value}</dd>
+          <dd className={tone === 'inverse' ? 'text-white/85' : 'text-ink/85'}>{entry.value}</dd>
         </div>
       ))}
     </dl>

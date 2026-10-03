@@ -22,8 +22,10 @@ export function EditorialHeading({
   className,
   id,
 }: EditorialHeadingProps) {
+  // The size token stays outside `cn`: tailwind-merge does not know the custom
+  // text-hero/display/title sizes and would drop them next to a colour class.
   return (
-    <Tag id={id} className={cn(sizes[size], className)}>
+    <Tag id={id} className={`${sizes[size]} ${cn(className)}`}>
       {children}
     </Tag>
   );

@@ -20,14 +20,14 @@ import { track } from '@/marketing/lib/analytics';
 /**
  * Product page for OpportunityPedia, an OpportunityX product.
  *
- * Capabilities are stated at the level a customer sees in the app. Do not add
- * a source, signal or integration here until it ships.
+ * Capabilities describe customer value as seen in the app. Do not name data
+ * sources or collection details, and do not add a capability until it ships.
  */
 export default function OpportunityPediaPage() {
   useSeo({
     title: 'OpportunityPedia — an OpportunityX product',
     description:
-      'OpportunityPedia, an OpportunityX product, helps teams discover, prioritize and act on government contract and hiring opportunities in one coordinated workflow.',
+      'OpportunityPedia, an OpportunityX product: AI-powered opportunity intelligence that helps teams discover, prioritize and act on business opportunities in one workflow.',
     path: flagshipProduct.path,
     standaloneTitle: true,
   });
@@ -38,7 +38,15 @@ export default function OpportunityPediaPage() {
         surface="navy"
         eyebrow="OPPORTUNITYPEDIA · AN OPPORTUNITYX PRODUCT"
         headline="Find what matters. Act before it disappears."
-        lead="One place for your team to discover opportunities, decide what needs attention first, and follow through together."
+        lead={
+          <>
+            <span className="block font-medium text-white">{flagshipProduct.positioning}</span>
+            <span className="mt-3 block">
+              One place for your team to discover opportunities, decide what needs attention first,
+              and follow through together.
+            </span>
+          </>
+        }
         actions={
           <>
             <LinkButton
@@ -72,7 +80,7 @@ export default function OpportunityPediaPage() {
                 <span aria-hidden="true" className="text-white/20">
                   /
                 </span>
-                <p className="label-meta text-white/45">What teams get</p>
+                <h2 className="label-meta text-white/60">What teams get</h2>
               </div>
               <SignalIndex
                 tone="inverse"
@@ -97,13 +105,12 @@ export default function OpportunityPediaPage() {
           <div className="lg:col-span-8">
             <Reveal>
               <EditorialHeading id="problem-heading" size="display" className="max-w-[22ch]">
-                The opportunities are public. Finding them in time is not.
+                The opportunities are out there. Finding them in time is not.
               </EditorialHeading>
               <div className="mt-10 grid max-w-[56rem] gap-8 border-t border-mist pt-8 md:grid-cols-2 md:gap-12">
                 <p className="text-lead text-graphite">
-                  Government notices and hiring announcements are published every day across
-                  separate portals. Checking them by hand takes hours, and the useful ones are easy
-                  to miss.
+                  New opportunities appear every day, scattered across many places. Checking them
+                  by hand takes hours, and the useful ones are easy to miss.
                 </p>
                 <p className="text-lead text-graphite">
                   Even when a team finds one, it rarely knows who already picked it up. OpportunityPedia
@@ -125,35 +132,37 @@ export default function OpportunityPediaPage() {
             <Reveal>
               <SectionLabel>CAPABILITIES</SectionLabel>
               <EditorialHeading id="capabilities-heading" size="display" className="mt-6 max-w-[18ch]">
-                What OpportunityPedia does today.
+                Everything your team needs to act on opportunities.
               </EditorialHeading>
               <p className="mt-6 max-w-[30rem] text-lead text-graphite">
-                From the signal, to the evidence behind it, to the person following it up.
+                Discover what matters, understand the context, prioritize your work and move
+                opportunities forward — all in one place.
               </p>
             </Reveal>
           </div>
 
           <div className="lg:col-span-7">
-            <dl className="border-t border-mist">
+            <ul className="border-t border-mist">
               {productCapabilities.map((capability, i) => (
                 <Reveal
+                  as="li"
                   key={capability.title}
                   delay={Math.min(i, 4) * 60}
                   className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 border-b border-mist py-7 md:grid-cols-[3.5rem_minmax(0,13rem)_minmax(0,1fr)] md:gap-x-6"
                 >
                   <span className="label-meta pt-1 text-ink">{capability.index}</span>
-                  <dt>
-                    <span className="block text-[1.1875rem] leading-snug font-semibold tracking-[-0.015em]">
+                  <div>
+                    <h3 className="text-[1.1875rem] leading-snug font-semibold tracking-[-0.015em]">
                       {capability.title}
-                    </span>
-                    <span className="label-meta mt-1.5 block text-forest">{capability.signal}</span>
-                  </dt>
-                  <dd className="col-start-2 mt-2 text-[0.9375rem] leading-relaxed text-graphite md:col-start-3 md:mt-0 md:pt-0.5">
+                    </h3>
+                    <p className="label-meta mt-1.5 text-forest">{capability.category}</p>
+                  </div>
+                  <p className="col-start-2 mt-2 text-[0.9375rem] leading-relaxed text-graphite md:col-start-3 md:mt-0 md:pt-0.5">
                     {capability.body}
-                  </dd>
+                  </p>
                 </Reveal>
               ))}
-            </dl>
+            </ul>
           </div>
         </div>
       </Section>
@@ -174,8 +183,7 @@ export default function OpportunityPediaPage() {
               </EditorialHeading>
               <p className="mt-6 max-w-[40rem] text-lead text-graphite">
                 Business development and sales teams — particularly staffing and services firms —
-                that bid on U.S. government contracts or sell to companies that are actively
-                hiring.
+                that need to spot the right opportunities early and follow them up as a team.
               </p>
             </Reveal>
           </div>

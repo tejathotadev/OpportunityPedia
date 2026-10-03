@@ -71,10 +71,9 @@ export function PageHero({
 
             {lead ? (
               <p
-                className={cn(
-                  'mt-6 max-w-[36rem] text-lead md:mt-7',
-                  inverse ? 'text-white/65' : 'text-graphite',
-                )}
+                className={`mt-6 max-w-[36rem] text-lead md:mt-7 ${
+                  inverse ? 'text-white/65' : 'text-graphite'
+                }`}
               >
                 {lead}
               </p>

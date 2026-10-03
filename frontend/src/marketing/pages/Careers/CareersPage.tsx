@@ -102,25 +102,26 @@ export default function CareersPage() {
             </Reveal>
           </div>
           <div className="lg:col-span-7 lg:col-start-6">
-            <dl className="border-t border-mist">
+            <ul className="border-t border-mist">
               {howWeWork.map((item, i) => (
                 <Reveal
+                  as="li"
                   key={item.title}
                   delay={i * 80}
                   className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 border-b border-mist py-6"
                 >
                   <span className="label-meta pt-1 text-ink">{item.index}</span>
                   <div>
-                    <dt className="text-[1.125rem] leading-snug font-semibold tracking-[-0.015em]">
+                    <h3 className="text-[1.125rem] leading-snug font-semibold tracking-[-0.015em]">
                       {item.title}
-                    </dt>
-                    <dd className="mt-2 text-[0.9375rem] leading-relaxed text-graphite">
+                    </h3>
+                    <p className="mt-2 text-[0.9375rem] leading-relaxed text-graphite">
                       {item.body}
-                    </dd>
+                    </p>
                   </div>
                 </Reveal>
               ))}
-            </dl>
+            </ul>
           </div>
         </div>
       </Section>

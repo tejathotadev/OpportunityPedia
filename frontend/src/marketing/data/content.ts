@@ -93,50 +93,52 @@ export const signalCategories = [
 ] as const;
 
 /* ---------------------------------------------------------------- *
- * OPPORTUNITYPEDIA CAPABILITIES — each line must match shipped behaviour.
+ * OPPORTUNITYPEDIA CAPABILITIES — customer value, in the order of the
+ * customer journey. Each line must match shipped behaviour, and must not
+ * name data sources, source identifiers or how data is collected.
  * ---------------------------------------------------------------- */
 export const productCapabilities = [
   {
     index: '01',
-    title: 'Government contract notices',
-    signal: 'Buying intent',
-    body: 'Active U.S. federal contract notices from SAM.gov, scanned for the industry (NAICS) codes your team selects.',
+    title: 'Discover opportunities',
+    category: 'Discovery',
+    body: 'Find relevant opportunities in one workspace instead of searching across multiple places.',
   },
   {
     index: '02',
-    title: 'Hiring activity',
-    signal: 'Growth',
-    body: 'Open roles published on public company career boards, grouped by company so you can see who is actively hiring.',
+    title: 'Understand what matters',
+    category: 'Intelligence',
+    body: 'See the signals, context and intent behind each opportunity, so your team understands why it matters.',
   },
   {
     index: '03',
-    title: 'Prioritized by heat',
-    signal: 'Scoring',
-    body: 'Every opportunity is placed in a lane: Very Hot for active buying, such as an open government notice, and Hot for hiring activity.',
+    title: 'Prioritize your pipeline',
+    category: 'Prioritization',
+    body: 'Focus your team on the opportunities that deserve attention first, with a clear priority level on every opportunity.',
   },
   {
     index: '04',
-    title: 'Evidence attached',
-    signal: 'Source',
-    body: 'Each opportunity links back to the original posting or notice. Government notices also carry the agency, solicitation number, set-aside, response deadline and published contact.',
+    title: 'Work with confidence',
+    category: 'Evidence',
+    body: 'Review the supporting evidence and context behind an opportunity before your team takes action.',
   },
   {
     index: '05',
-    title: 'Owned and tracked',
-    signal: 'Workflow',
-    body: 'Assign an owner to each opportunity, work from your own queue, and see a shared activity history so nobody duplicates effort.',
+    title: 'Own every opportunity',
+    category: 'Workflow',
+    body: 'Assign opportunities, track outreach progress and keep a shared activity history, so work does not fall through the cracks.',
   },
   {
     index: '06',
-    title: 'Outreach in context',
-    signal: 'Action',
-    body: 'Send outreach email from the opportunity itself — through your company’s own mail server if you connect one — with AI-assisted drafts where enabled.',
+    title: 'Take action faster',
+    category: 'Action',
+    body: 'Move from discovery to outreach and follow-up in the same workflow, with AI-assisted drafts where available.',
   },
   {
     index: '07',
-    title: 'One team workspace',
-    signal: 'Coordination',
-    body: 'Invite teammates into a shared workspace and get notified when a scan finds something new.',
+    title: 'Work as one team',
+    category: 'Collaboration',
+    body: 'Give your team a shared workspace for opportunities, ownership, activity and collaboration.',
   },
 ] as const;
 

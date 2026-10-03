@@ -7,12 +7,13 @@
 
 ## 1. What Is This Project?
 
-**OpportunityPedia** is a website with two parts:
+This repository holds two parts. **OpportunityX** is the company (legal entity: OpportunityX
+Private Limited), and **OpportunityPedia** is its product.
 
-1. **Marketing website** (public) — Home, Products, Company, Careers, Contact, Privacy, Terms.
-   It explains the company and collects contact messages.
+1. **Marketing website** (public) — the OpportunityX company website: Home, Products, OpportunityPedia product page, Company, Careers, Contact, Privacy, Terms.
+   It explains the company and its products, and collects contact messages.
 
-2. **OpportunityX app** (private, login required) — This is the main product.
+2. **OpportunityPedia app** (private, login required) — the web application for the OpportunityPedia product.
    It is an **opportunity intelligence dashboard**:
    - It scans many job boards + US government contracts (SAM.gov).
    - It shows staffing jobs, government tenders, and contract awards.
@@ -76,8 +77,8 @@ OpportunityPedia/
 │   ├── src/
 │   │   ├── main.tsx / App.tsx <- app entry
 │   │   ├── routes/router.tsx  <- all page URLs
-│   │   ├── marketing/         <- public website pages + components
-│   │   └── app/               <- private OpportunityX app
+│   │   ├── marketing/         <- public OpportunityX website pages + components
+│   │   └── app/               <- private OpportunityPedia app
 │   │       ├── pages/         <- Login, Overview, Opportunities, Vendors, etc.
 │   │       ├── services/      <- api.ts + one file per feature (auth, radar...)
 │   │       ├── store/         <- Zustand login session + toast + UI
@@ -418,7 +419,7 @@ Key relationships:
 
 ### 6.3 Frontend pages — `src/routes/router.tsx`
 
-Public (under `SiteLayout`): `/` Home, `/products`, `/products/opportunitypedia`, `/company`, `/careers`, `/contact`, `/privacy`, `/terms`, `/about → /company`.
+Public (under `SiteLayout`): `/` Home, `/products`, `/products/opportunitypedia`, `/company`, `/careers`, `/contact`, `/privacy`, `/terms`, `/about → /company`, `/products/opportunityx → /products/opportunitypedia`. One public header and footer for all of them — see [`ARCHITECTURE.md` §3.5](ARCHITECTURE.md#35-public-website).
 
 Auth: `/login`, `/set-password?token=`, `/workspace-setup?email=`, `/get-started` (free signup), `/admin/login`.
 

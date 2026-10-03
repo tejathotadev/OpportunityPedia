@@ -21,23 +21,24 @@ export function BenefitGrid() {
         </div>
 
         <div className="lg:col-span-7">
-          <dl className="border-t border-mist">
+          <ul className="border-t border-mist">
             {productBenefits.map((benefit, i) => (
               <Reveal
+                as="li"
                 key={benefit.title}
                 delay={i * 80}
                 className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 border-b border-mist py-7 md:grid-cols-[3.5rem_minmax(0,13rem)_minmax(0,1fr)] md:gap-x-6"
               >
                 <span className="label-meta pt-1 text-ink">{benefit.index}</span>
-                <dt className="text-[1.1875rem] leading-snug font-semibold tracking-[-0.015em]">
+                <h3 className="text-[1.1875rem] leading-snug font-semibold tracking-[-0.015em]">
                   {benefit.title}
-                </dt>
-                <dd className="col-start-2 mt-2 text-[0.9375rem] leading-relaxed text-graphite md:col-start-3 md:mt-0 md:pt-0.5">
+                </h3>
+                <p className="col-start-2 mt-2 text-[0.9375rem] leading-relaxed text-graphite md:col-start-3 md:mt-0 md:pt-0.5">
                   {benefit.body}
-                </dd>
+                </p>
               </Reveal>
             ))}
-          </dl>
+          </ul>
         </div>
       </div>
     </Section>

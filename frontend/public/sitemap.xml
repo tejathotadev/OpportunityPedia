@@ -7,7 +7,7 @@
     <loc>https://opportunitypedia.com/products</loc>
   </url>
   <url>
-    <loc>https://opportunitypedia.com/products/opportunityx</loc>
+    <loc>https://opportunitypedia.com/products/opportunitypedia</loc>
   </url>
   <url>
     <loc>https://opportunitypedia.com/company</loc>
@@ -17,11 +17,5 @@
   </url>
   <url>
     <loc>https://opportunitypedia.com/contact</loc>
-  </url>
-  <url>
-    <loc>https://opportunitypedia.com/privacy</loc>
-  </url>
-  <url>
-    <loc>https://opportunitypedia.com/terms</loc>
   </url>
 </urlset>
