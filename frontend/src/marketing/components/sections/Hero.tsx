@@ -41,8 +41,8 @@ export function Hero() {
               >
                 Explore {flagshipProduct.name}
               </LinkButton>
-              <LinkButton to="/products" variant="secondary" size="lg">
-                Our products
+              <LinkButton to="/contact" variant="secondary" size="lg">
+                Talk to us
               </LinkButton>
             </div>
 

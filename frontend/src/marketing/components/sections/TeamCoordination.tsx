@@ -6,7 +6,7 @@ import { Reveal } from '@/marketing/components/common/Reveal';
 import { SignalBadge } from '@/marketing/components/common/SignalBadge';
 
 /**
- * Ownership and activity visibility — the strongest OpportunityX
+ * Ownership and activity visibility — the strongest OpportunityPedia
  * differentiator, so it gets its own section rather than a slot in a grid.
  */
 const timeline = [

@@ -13,6 +13,7 @@ import { BenefitGrid } from '@/marketing/components/sections/BenefitGrid';
 import { FinalCta } from '@/marketing/components/sections/FinalCta';
 import { productCapabilities } from '@/marketing/data/content';
 import { flagshipProduct } from '@/marketing/data/products';
+import { site } from '@/marketing/data/site';
 import { useSeo } from '@/marketing/hooks/useSeo';
 import { track } from '@/marketing/lib/analytics';
 
@@ -24,10 +25,11 @@ import { track } from '@/marketing/lib/analytics';
  */
 export default function OpportunityPediaPage() {
   useSeo({
-    title: 'OpportunityPedia — Find and act on opportunity',
+    title: 'OpportunityPedia — an OpportunityX product',
     description:
       'OpportunityPedia, an OpportunityX product, helps teams discover, prioritize and act on government contract and hiring opportunities in one coordinated workflow.',
     path: flagshipProduct.path,
+    standaloneTitle: true,
   });
 
   return (
@@ -39,19 +41,17 @@ export default function OpportunityPediaPage() {
         lead="One place for your team to discover opportunities, decide what needs attention first, and follow through together."
         actions={
           <>
+            <LinkButton
+              to={site.productAppUrl}
+              size="lg"
+              className="bg-teal text-navy-deep hover:bg-teal-deep"
+              onClick={() => track('nav_product_click', { surface: 'product_hero' })}
+            >
+              Open OpportunityPedia
+            </LinkButton>
             {flagshipProduct.signupUrl ? (
-              <LinkButton
-                to={flagshipProduct.signupUrl}
-                size="lg"
-                className="bg-teal text-navy-deep hover:bg-teal-deep"
-                onClick={() => track('nav_product_click', { surface: 'product_hero' })}
-              >
+              <LinkButton to={flagshipProduct.signupUrl} variant="inverse-outline" size="lg">
                 Start free plan
-              </LinkButton>
-            ) : null}
-            {flagshipProduct.appUrl ? (
-              <LinkButton to={flagshipProduct.appUrl} variant="inverse-outline" size="lg">
-                Sign in to OpportunityPedia
               </LinkButton>
             ) : null}
           </>
@@ -59,7 +59,7 @@ export default function OpportunityPediaPage() {
         index={[
           { key: 'Product', value: 'OpportunityPedia' },
           { key: 'By', value: 'OpportunityX' },
-          { key: 'Status', value: 'Available' },
+          { key: 'Status', value: 'Flagship' },
         ]}
       />
 
@@ -187,33 +187,25 @@ export default function OpportunityPediaPage() {
           <Reveal>
             <SectionLabel>ACCESS</SectionLabel>
             <EditorialHeading id="access-heading" size="display" className="mt-6">
-              Start with the free plan.
+              Talk to us about early access.
             </EditorialHeading>
             <p className="mt-6 text-lead text-graphite">
-              Set up a workspace and try OpportunityPedia with your team, or talk to us about how
-              your team finds opportunities today.
+              OpportunityPedia is being built with a small number of teams. Tell us how your team
+              finds opportunities today and we will follow up directly.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              {flagshipProduct.signupUrl ? (
-                <LinkButton to={flagshipProduct.signupUrl} size="lg">
-                  Start free plan
-                </LinkButton>
-              ) : null}
-              <LinkButton to="/contact" variant="secondary" size="lg">
-                Talk to us
+              <LinkButton to="/get-started" size="lg">
+                Start free plan
               </LinkButton>
-            </div>
-            <p className="mt-8 border-t border-mist pt-5 text-sm text-graphite">
-              OpportunityPedia is built and operated by OpportunityX.{' '}
-              <LinkButton to="/company" variant="tertiary" className="inline-flex">
+              <LinkButton to="/company" variant="secondary" size="lg">
                 About OpportunityX
               </LinkButton>
-            </p>
+            </div>
           </Reveal>
         </div>
       </Section>
 
-      <FinalCta />
+      <FinalCta primary={{ label: 'Open OpportunityPedia', to: site.productAppUrl }} />
     </>
   );
 }

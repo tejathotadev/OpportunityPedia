@@ -90,7 +90,7 @@ export default function ProductsPage() {
             <Reveal>
               <SectionLabel>ALL PRODUCTS</SectionLabel>
               <EditorialHeading id="all-products-heading" size="display" className="mt-6 max-w-[16ch]">
-                More products and services are coming.
+                More products and services are being developed.
               </EditorialHeading>
               <p className="mt-6 max-w-[32rem] text-lead text-graphite">
                 New OpportunityX products and services will be listed here when there is something

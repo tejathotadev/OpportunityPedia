@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Opportunity Pedia — company site and the OpportunityX application.",
+  "description": "OpportunityX company site and the OpportunityPedia application.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -7,6 +7,8 @@ export type SeoInput = {
   path: string;
   /** Set false for utility routes that should stay out of the index. */
   index?: boolean;
+  /** Use `title` as-is, without the company-name suffix. */
+  standaloneTitle?: boolean;
 };
 
 function upsertMeta(selector: string, attr: 'name' | 'property', key: string, content: string) {
@@ -30,9 +32,15 @@ function upsertLink(rel: string, href: string) {
 }
 
 /** Imperative head management. Small enough that react-helmet isn't warranted. */
-export function applySeo({ title, description, path, index = true }: SeoInput): void {
+export function applySeo({
+  title,
+  description,
+  path,
+  index = true,
+  standaloneTitle = false,
+}: SeoInput): void {
   const canonical = `${SITE_ORIGIN}${path}`;
-  const fullTitle = path === '/' ? title : `${title} — ${SITE_NAME}`;
+  const fullTitle = path === '/' || standaloneTitle ? title : `${title} — ${SITE_NAME}`;
 
   document.title = fullTitle;
 

@@ -45,7 +45,7 @@ export type NavItem = {
 const productLinks: NavItem[] = products.map((p) => ({ label: p.name, to: p.path }));
 
 export const primaryNav: NavItem[] = [
-  { label: 'About', to: '/company' },
+  { label: 'Company', to: '/company' },
   { label: 'Products', to: '/products', children: productLinks },
   { label: 'Careers', to: '/careers' },
   { label: 'Contact', to: '/contact' },

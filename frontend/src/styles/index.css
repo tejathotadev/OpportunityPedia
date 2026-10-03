@@ -5,10 +5,10 @@
 @import 'tailwindcss';
 
 /* ------------------------------------------------------------------ *
- * OPPORTUNITYPEDIA — DESIGN TOKENS
+ * DESIGN TOKENS
  *
- * One system for both halves of the product: the public site and the
- * OpportunityX application. Editorial warm-neutral + forest. Green is
+ * One system for both halves of this frontend: the OpportunityX public site
+ * and the OpportunityPedia application. Editorial warm-neutral + forest. Green is
  * used intentionally, never as a gradient and never as the dominant
  * surface.
  * ------------------------------------------------------------------ */

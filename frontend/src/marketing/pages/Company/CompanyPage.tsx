@@ -7,12 +7,12 @@ import { Reveal } from '@/marketing/components/common/Reveal';
 import { Philosophy } from '@/marketing/components/sections/Philosophy';
 import { FinalCta } from '@/marketing/components/sections/FinalCta';
 import { flagshipProduct } from '@/marketing/data/products';
-import { legalEntity } from '@/marketing/data/site';
+import { site } from '@/marketing/data/site';
 import { useSeo } from '@/marketing/hooks/useSeo';
 
 export default function CompanyPage() {
   useSeo({
-    title: 'About',
+    title: 'Company',
     description:
       'OpportunityX is a technology company building products that make business opportunity easier to see and act on. Its first product is OpportunityPedia.',
     path: '/company',
@@ -21,13 +21,13 @@ export default function CompanyPage() {
   return (
     <>
       <PageHero
-        eyebrow="ABOUT OPPORTUNITYX"
+        eyebrow="COMPANY"
         headline="We believe the next opportunity should be easier to find."
         lead="OpportunityX is a technology company. We build products that help teams see what matters — and act before it disappears."
         index={[
-          { key: 'Company', value: legalEntity.name },
-          { key: 'Flagship product', value: flagshipProduct.name },
-          { key: 'Based in', value: 'Hyderabad, India' },
+          { key: 'Company', value: site.name },
+          { key: 'Flagship', value: flagshipProduct.name },
+          { key: 'Stage', value: 'Building' },
         ]}
       />
 

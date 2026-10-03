@@ -5,7 +5,14 @@ import { Reveal } from '@/marketing/components/common/Reveal';
 import { flagshipProduct } from '@/marketing/data/products';
 import { track } from '@/marketing/lib/analytics';
 
-export function FinalCta() {
+type FinalCtaProps = {
+  /** Defaults to the flagship product page; the product page itself overrides it. */
+  primary?: { label: string; to: string };
+};
+
+export function FinalCta({
+  primary = { label: `Explore ${flagshipProduct.name}`, to: flagshipProduct.path },
+}: FinalCtaProps) {
   return (
     <section aria-labelledby="final-cta-heading" className="relative overflow-hidden bg-forest">
       <div
@@ -40,12 +47,12 @@ export function FinalCta() {
             <Reveal delay={100}>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
                 <LinkButton
-                  to={flagshipProduct.path}
+                  to={primary.to}
                   variant="inverse"
                   size="lg"
                   onClick={() => track('nav_product_click', { surface: 'final_cta' })}
                 >
-                  Explore {flagshipProduct.name}
+                  {primary.label}
                 </LinkButton>
                 <LinkButton
                   to="/contact"
